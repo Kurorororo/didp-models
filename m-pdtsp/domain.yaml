@@ -1,0 +1,77 @@
+domain: mPDTSP
+objects:
+  - customer
+state_variables:
+  - name: unvisited
+    type: set
+    object: customer
+  - name: location
+    type: element
+    object: customer
+  - name: load
+    type: integer
+    preference: less
+tables:
+  - name: goal
+    type: element
+    object: customer
+  - name: capacity
+    type: integer
+  - name: predecessors
+    type: set
+    object: customer
+    args:
+      - customer
+  - name: demand
+    type: integer
+    args:
+      - customer
+  - name: connected
+    type: bool
+    args:
+      - customer
+      - customer
+    default: false
+  - name: distance
+    type: integer
+    args:
+      - customer
+      - customer
+    default: 0
+  - name: min_distance_to
+    type: integer
+    args:
+      - customer
+  - name: min_distance_from
+    type: integer
+    args:
+      - customer
+base_cases:
+  - - (is_empty unvisited)
+    - (= location goal)
+reduce: min
+cost_type: integer
+transitions:
+  - name: visit
+    parameters:
+      - name: to
+        object: unvisited
+    preconditions:
+      - (connected location to)
+      - (<= (+ load (demand to)) capacity)
+      - (is_empty (intersection unvisited (predecessors to)))
+    effect:
+      unvisited: (remove to unvisited)
+      location: to
+      load: (+ load (demand to))
+    cost: (+ cost (distance location to))
+  - name: finish
+    preconditions:
+      - (connected location goal)
+      - (is_empty unvisited)
+    effect:
+      location: goal
+    cost: (+ cost (distance location goal))
+dual_bounds:
+  - (+ (sum min_distance_to unvisited) (if (!= location goal) (min_distance_to goal) 0))
+  - (+ (sum min_distance_from unvisited) (min_distance_from location))

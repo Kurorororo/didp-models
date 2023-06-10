@@ -1,0 +1,74 @@
+domain: talent_scheduling
+objects:
+    - scene
+    - actor
+state_variables:
+    - name: remaining
+      type: set
+      object: scene
+tables:
+    - name: players
+      type: set
+      object: actor
+      args:
+          - scene
+    - name: duration
+      type: integer
+      args:
+          - scene
+    - name: actor_cost
+      type: integer
+      args:
+          - actor
+    - name: base_cost
+      type: integer
+      args:
+          - scene
+    - name: subsumption_candidates
+      type: set
+      object: scene
+      args:
+          - scene
+base_cases:
+    - - (is_empty remaining)
+reduce: min
+cost_type: integer
+transitions:
+    - name: actor-equivalent-shoot
+      forced: true
+      parameters:
+          - name: s
+            object: remaining
+      preconditions:
+          - (= (players s) (intersection (union players ~remaining) (union players remaining)))
+      effect:
+          remaining: (remove s remaining)
+      cost: >
+          (+ cost
+             (* (duration s)
+                (sum actor_cost (union (players s)
+                                       (intersection (union players (remove s remaining))
+                                                     (union players (remove s ~remaining)))))))
+    - name: shoot
+      parameters:
+          - name: s
+            object: remaining
+      preconditions:
+          - forall:
+                - name: t
+                  object: remaining
+            condition: >
+                (not (and (is_in t (subsumption_candidates s))
+                          (is_subset (players t)
+                                     (union (union players ~remaining)
+                                            (players s)))))
+      effect:
+          remaining: (remove s remaining)
+      cost: >
+          (+ cost
+             (* (duration s)
+                (sum actor_cost (union (players s)
+                                       (intersection (union players (remove s remaining))
+                                                     (union players (remove s ~remaining)))))))
+dual_bounds:
+    - (sum base_cost remaining)
