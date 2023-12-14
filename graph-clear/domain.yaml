@@ -1,4 +1,3 @@
-domain: graph-clear
 objects:
   - node
 state_variables:

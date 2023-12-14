@@ -37,8 +37,9 @@ constraints:
       - name: to
         object: unvisited
 base_cases:
-  - - (is_empty unvisited)
-    - (= location 0)
+  - conditions:
+      - (is_empty unvisited)
+    cost: (distance location 0)
 reduce: min
 cost_type: integer
 transitions:
@@ -53,13 +54,5 @@ transitions:
       location: to
       time: (max (+ time (distance location to)) (ready_time to))
     cost: (+ cost (distance location to))
-  - name: return
-    preconditions:
-      - (is_empty unvisited)
-      - (!= location 0)
-    effect:
-      location: 0
-      time: (+ time (distance location 0))
-    cost: (+ cost (distance location 0))
 dual_bounds:
   - 0

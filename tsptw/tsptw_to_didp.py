@@ -2,14 +2,12 @@
 
 import argparse
 import os
-import subprocess
 import resource
+import subprocess
 import time
 
-import yaml
-
 import read_tsptw
-
+import yaml
 
 start = time.perf_counter()
 
@@ -68,13 +66,11 @@ def compute_min_distance_from(nodes, edges):
     return result
 
 
-def create_didp(problem_name, n, nodes, edges, a, b, use_bound=False):
+def create_didp(n, nodes, edges, a, b, use_bound=False):
     shortest_distance = compute_shortest_distance(nodes, edges)
     output_lines = [
-        "domain: TSPTW",
-        "problem: {}".format(problem_name),
         "object_numbers:",
-        "      city: {}".format(n),
+        "      customer: {}".format(n),
         "target:",
         "      unvisited: [ " + ", ".join([str(i) for i in range(1, n)]) + " ]",
         "      location: 0",
@@ -125,20 +121,24 @@ if __name__ == "__main__":
     parser.add_argument("--time-limit", default=None, type=int)
     parser.add_argument("--memory-limit", default=None, type=int)
     parser.add_argument("--use-bound", action="store_true")
+    parser.add_argument("--non-zero-base-case", action="store_true")
     args = parser.parse_args()
 
     n, nodes, edges, a, b = read_tsptw.read(args.input)
-    name = os.path.basename(args.input)
-    pddl_text = create_didp(name, n, nodes, edges, a, b, use_bound=args.use_bound)
+    dypdl_text = create_didp(n, nodes, edges, a, b, use_bound=args.use_bound)
 
     with open("problem.yaml", "w") as f:
-        f.write(pddl_text)
+        f.write(dypdl_text)
 
-    domain_file = "domain.yaml"
-
-    if args.use_bound:
-        domain_file = "domain_bound.yaml"
-
+    domain_file = (
+        "domain_non_zero_base_bound.yaml"
+        if args.non_zero_base_case and args.use_bound
+        else "domain_non_zero_base.yaml"
+        if args.non_zero_base_case
+        else "domain_bound.yaml"
+        if args.use_bound
+        else "domain.yaml"
+    )
     domain_path = os.path.join(os.path.dirname(__file__), domain_file)
 
     if args.didp_path is not None:
@@ -159,6 +159,9 @@ if __name__ == "__main__":
                 solution.append(transition["parameters"]["to"])
             if transition["name"] == "return":
                 solution.append(0)
+
+        if args.non_zero_base_case:
+            solution.append(0)
 
         print(solution)
         print("cost: {}".format(cost))

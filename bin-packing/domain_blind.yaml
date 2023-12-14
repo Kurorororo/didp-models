@@ -66,6 +66,4 @@ transitions:
       bin-number: (+ 1 bin-number)
     cost: (+ cost 1)
 dual_bounds:
-  - (ceil (/ (- (sum weight unpacked) residual) capacity))
-  - (- (+ (sum lb2-weight1 unpacked) (ceil (sum lb2-weight2 unpacked))) (if (>= residual (/ capacity 2.0)) 1 0))
-  - (- (ceil (sum lb3-weight unpacked)) (if (>= residual (/ capacity 3.0)) 1 0))
+  - 0

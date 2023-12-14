@@ -37,14 +37,6 @@ tables:
       - customer
       - customer
     default: 0
-  - name: min_distance_to
-    type: integer
-    args:
-      - customer
-  - name: min_distance_from
-    type: integer
-    args:
-      - customer
 base_cases:
   - - (is_empty unvisited)
     - (= location goal)
@@ -72,5 +64,4 @@ transitions:
       location: goal
     cost: (+ cost (distance location goal))
 dual_bounds:
-  - (+ (sum min_distance_to unvisited) (if (!= location goal) (min_distance_to goal) 0))
-  - (+ (sum min_distance_from unvisited) (min_distance_from location))
+  - 0

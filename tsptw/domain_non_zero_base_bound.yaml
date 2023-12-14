@@ -7,31 +7,25 @@ state_variables:
   - name: location
     type: element
     object: customer
-  - name: load
+  - name: time
     type: integer
     preference: less
 tables:
-  - name: goal
-    type: element
-    object: customer
-  - name: capacity
-    type: integer
-  - name: predecessors
-    type: set
-    object: customer
-    args:
-      - customer
-  - name: demand
+  - name: ready_time
     type: integer
     args:
       - customer
-  - name: connected
-    type: bool
+  - name: due_date
+    type: integer
     args:
       - customer
-      - customer
-    default: false
   - name: distance
+    type: integer
+    args:
+      - customer
+      - customer
+    default: 0
+  - name: shortest_distance
     type: integer
     args:
       - customer
@@ -45,9 +39,15 @@ tables:
     type: integer
     args:
       - customer
+constraints:
+  - condition: (<= (+ time (shortest_distance location to)) (due_date to))
+    forall:
+      - name: to
+        object: unvisited
 base_cases:
-  - - (is_empty unvisited)
-    - (= location goal)
+  - conditions:
+      - (is_empty unvisited)
+    cost: (distance location 0)
 reduce: min
 cost_type: integer
 transitions:
@@ -56,21 +56,12 @@ transitions:
       - name: to
         object: unvisited
     preconditions:
-      - (connected location to)
-      - (<= (+ load (demand to)) capacity)
-      - (is_empty (intersection unvisited (predecessors to)))
+      - (<= (+ time (distance location to)) (due_date to))
     effect:
       unvisited: (remove to unvisited)
       location: to
-      load: (+ load (demand to))
+      time: (max (+ time (distance location to)) (ready_time to))
     cost: (+ cost (distance location to))
-  - name: finish
-    preconditions:
-      - (connected location goal)
-      - (is_empty unvisited)
-    effect:
-      location: goal
-    cost: (+ cost (distance location goal))
 dual_bounds:
-  - (+ (sum min_distance_to unvisited) (if (!= location goal) (min_distance_to goal) 0))
+  - (+ (sum min_distance_to unvisited) (min_distance_to 0))
   - (+ (sum min_distance_from unvisited) (min_distance_from location))

@@ -20,21 +20,6 @@ tables:
     args:
       - task
     default: []
-  - name: lb2-weight1
-    type: integer
-    args:
-      - task
-    default: 0
-  - name: lb2-weight2
-    type: continuous
-    args:
-      - task
-    default: 0.0
-  - name: lb3-weight
-    type: continuous
-    args:
-      - task
-    default: 0.0
 base_cases:
   - - (is_empty uncompleted)
 reduce: min
@@ -62,6 +47,4 @@ transitions:
       idle-time: cycle-time
     cost: (+ cost 1)
 dual_bounds:
-  - (ceil (/ (- (sum time uncompleted) idle-time) cycle-time))
-  - (- (+ (sum lb2-weight1 uncompleted) (ceil (sum lb2-weight2 uncompleted))) (if (>= idle-time (/ cycle-time 2.0)) 1 0))
-  - (- (ceil (sum lb3-weight uncompleted)) (if (>= idle-time (/ cycle-time 3.0)) 1 0))
+  - 0

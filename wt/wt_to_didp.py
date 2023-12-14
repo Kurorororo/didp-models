@@ -2,14 +2,12 @@
 
 import argparse
 import os
+import resource
 import subprocess
 import time
-import resource
-
-import yaml
 
 import read_single_machine_scheduling
-
+import yaml
 
 start = time.perf_counter()
 
@@ -31,7 +29,6 @@ def get_limit_resource(time_limit, memory_limit):
 def generate_problem(processing_times, due_dates, weights, before):
     n = len(processing_times)
     lines = [
-        "domain: 1||w_iT_i",
         "object_numbers:",
         "    job: {}".format(n),
         "target:",

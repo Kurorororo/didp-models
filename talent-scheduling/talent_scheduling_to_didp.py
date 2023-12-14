@@ -6,10 +6,8 @@ import resource
 import subprocess
 import time
 
-import yaml
-
 import read_talent_scheduling
-
+import yaml
 
 start = time.perf_counter()
 
@@ -49,8 +47,6 @@ def generate_problem(
     players = [[j for j in range(m) if actor_to_scenes[j][i] == 1] for i in range(n)]
     subsumption_candidates = get_subsumption_candidates(players)
     lines = [
-        "domain: talent-scheduling",
-        "problem: {}".format(name),
         "object_numbers:",
         "    scene: {}".format(n),
         "    actor: {}".format(m),
@@ -92,6 +88,7 @@ if __name__ == "__main__":
     parser.add_argument("--config-path", "-c", type=str)
     parser.add_argument("--time-limit", default=None, type=int)
     parser.add_argument("--memory-limit", default=None, type=int)
+    parser.add_argument("--blind", action="store_true")
     args = parser.parse_args()
 
     (
@@ -126,7 +123,8 @@ if __name__ == "__main__":
     with open("problem.yaml", "w") as f:
         f.write(problem)
 
-    domain_path = os.path.join(os.path.dirname(__file__), "domain.yaml")
+    domain_file_name = "domain_blind.yaml" if args.blind else "domain.yaml"
+    domain_path = os.path.join(os.path.dirname(__file__), domain_file_name)
 
     if args.didp_path is not None:
         fn = get_limit_resource(args.time_limit, args.memory_limit)

@@ -65,4 +65,4 @@ transitions:
                                    (intersection (union players remaining)
                                                  (union players ~remaining))))))
 dual_bounds:
-  - (sum base_cost remaining)
+  - 0

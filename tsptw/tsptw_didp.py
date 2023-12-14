@@ -107,9 +107,32 @@ def solve(
     solver_name,
     history,
     time_limit=None,
+    seed=2023,
     non_zero_base_case=False,
+    initial_beam_size=1,
+    threads=1,
+    parallel_type=0,
 ):
-    if solver_name == "FR":
+    if solver_name == "LNBS":
+        if parallel_type == 2:
+            parallelization_method = dp.BeamParallelizationMethod.Sbs
+        elif parallel_type == 1:
+            parallelization_method = dp.BeamParallelizationMethod.Hdbs1
+        else:
+            parallelization_method = dp.BeamParallelizationMethod.Hdbs2
+
+        solver = dp.LNBS(
+            model,
+            initial_beam_size=initial_beam_size,
+            seed=seed,
+            parallelization_method=parallelization_method,
+            threads=threads,
+            time_limit=time_limit,
+            quiet=False,
+        )
+    elif solver_name == "DD-LNS":
+        solver = dp.DDLNS(model, time_limit=time_limit, quiet=False, seed=seed)
+    elif solver_name == "FR":
         solver = dp.ForwardRecursion(model, time_limit=time_limit, quiet=False)
     elif solver_name == "BrFS":
         solver = dp.BreadthFirstSearch(model, time_limit=time_limit, quiet=False)
@@ -126,7 +149,21 @@ def solve(
     elif solver_name == "DBDFS":
         solver = dp.DBDFS(model, time_limit=time_limit, quiet=False)
     else:
-        solver = dp.CABS(model, time_limit=time_limit, quiet=False)
+        if parallel_type == 2:
+            parallelization_method = dp.BeamParallelizationMethod.Sbs
+        elif parallel_type == 1:
+            parallelization_method = dp.BeamParallelizationMethod.Hdbs1
+        else:
+            parallelization_method = dp.BeamParallelizationMethod.Hdbs2
+
+        solver = dp.CABS(
+            model,
+            initial_beam_size=initial_beam_size,
+            threads=threads,
+            parallelization_method=parallelization_method,
+            time_limit=time_limit,
+            quiet=False,
+        )
 
     if solver_name == "FR":
         solution = solver.search()
@@ -144,6 +181,8 @@ def solve(
                     f.flush()
 
     print("Search time: {}s".format(solution.time))
+    print("Expanded: {}".format(solution.expanded))
+    print("Generated: {}".format(solution.generated))
 
     if solution.is_infeasible:
         print("The problem is infeasible")
@@ -160,11 +199,8 @@ def solve(
 
         print(" ".join(map(str, tour[1:-1])))
 
-        print("Search time: {}s".format(solution.time))
-        print("Expanded: {}".format(solution.expanded))
-        print("Generated: {}".format(solution.generated))
-        print("cost: {}".format(solution.cost))
         print("best bound: {}".format(solution.best_bound))
+        print("cost: {}".format(solution.cost))
 
         if solution.is_optimal:
             print("optimal cost: {}".format(solution.cost))
@@ -178,7 +214,11 @@ if __name__ == "__main__":
     parser.add_argument("--time-out", default=1800, type=int)
     parser.add_argument("--history", default="history.csv", type=str)
     parser.add_argument("--config", default="CABS", type=str)
+    parser.add_argument("--seed", default=2023, type=int)
     parser.add_argument("--non-zero-base-case", action="store_true")
+    parser.add_argument("--threads", default=1, type=int)
+    parser.add_argument("--initial-beam-size", default=1, type=int)
+    parser.add_argument("--parallel-type", default=0, type=int)
     args = parser.parse_args()
 
     n, nodes, edges, a, b = read_tsptw.read(args.input)
@@ -192,7 +232,11 @@ if __name__ == "__main__":
         args.config,
         args.history,
         time_limit=args.time_out,
+        seed=args.seed,
         non_zero_base_case=args.non_zero_base_case,
+        threads=args.threads,
+        initial_beam_size=args.initial_beam_size,
+        parallel_type=args.parallel_type,
     )
 
     if cost is not None and read_tsptw.validate(n, edges, a, b, tour, cost):

@@ -2,14 +2,12 @@
 
 import argparse
 import os
-import subprocess
 import resource
+import subprocess
 import time
 
-import yaml
-
 import read_graph_clear
-
+import yaml
 
 start = time.perf_counter()
 
@@ -30,8 +28,6 @@ def get_limit_resource(time_limit, memory_limit):
 
 def generate_problem(n, node_weights, edge_weiths):
     lines = [
-        "domain: graph-clear",
-        "problem: test",
         "object_numbers:",
         "   node: {}".format(n),
         "target:",

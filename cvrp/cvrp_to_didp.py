@@ -2,15 +2,13 @@
 
 import argparse
 import os
-import time
 import re
 import resource
 import subprocess
-
-import yaml
+import time
 
 import read_tsplib
-
+import yaml
 
 start = time.perf_counter()
 
@@ -47,10 +45,8 @@ def compute_min_distance_from(nodes, edges):
     return result
 
 
-def create_didp(problem_name, n, nodes, edges, capacity, demand, k, use_bound=False):
+def create_didp(n, nodes, edges, capacity, demand, k, use_bound=False):
     output_lines = [
-        "domain: CVRP",
-        "problem: {}".format(problem_name),
         "object_numbers:",
         "      customer: {}".format(n),
         "target:",
@@ -67,7 +63,7 @@ def create_didp(problem_name, n, nodes, edges, capacity, demand, k, use_bound=Fa
         "      distance:",
         "            {",
     ]
-    for (i, j) in edges:
+    for i, j in edges:
         output_lines.append(
             "                  [{}, {}]: {},".format(i - 1, j - 1, edges[i, j])
         )
@@ -96,6 +92,7 @@ if __name__ == "__main__":
     parser.add_argument("--time-limit", default=None, type=int)
     parser.add_argument("--memory-limit", default=None, type=int)
     parser.add_argument("--use-bound", action="store_true")
+    parser.add_argument("--non-zero-base-case", action="store_true")
     args = parser.parse_args()
 
     name = os.path.basename(args.input)
@@ -112,13 +109,21 @@ if __name__ == "__main__":
         _,
     ) = read_tsplib.read_cvrp(args.input)
     problem = create_didp(
-        name, n, nodes, edges, capacity, demand, k, use_bound=args.use_bound
+        n, nodes, edges, capacity, demand, k, use_bound=args.use_bound
     )
 
     with open("problem.yaml", "w") as f:
         f.write(problem)
 
-    domain_file = "domain_bound.yaml" if args.use_bound else "domain.yaml"
+    domain_file = (
+        "domain_non_zero_base_bound.yaml"
+        if args.non_zero_base_case and args.use_bound
+        else "domain_non_zero_base.yaml"
+        if args.non_zero_base_case
+        else "domain_bound.yaml"
+        if args.use_bound
+        else "domain.yaml"
+    )
     domain_path = os.path.join(os.path.dirname(__file__), domain_file)
 
     if args.didp_path is not None:
@@ -142,6 +147,9 @@ if __name__ == "__main__":
                 solution.append(transition["parameters"]["to"] + 1)
             if transition["name"] == "return":
                 solution.append(depot)
+
+        if args.non_zero_base_case:
+            solution.append(depot)
 
         print(solution)
         print("cost: {}".format(cost))

@@ -28,17 +28,10 @@ tables:
       - customer
       - customer
     default: 0
-  - name: min_distance_to
-    type: integer
-    args:
-      - customer
-  - name: min_distance_from
-    type: integer
-    args:
-      - customer
 base_cases:
-  - - (is_empty unvisited)
-    - (= location 0)
+  - conditions:
+      - (is_empty unvisited)
+    cost: (distance location 0)
 constraints:
   - condition: >
       (>= (+ (* (- max_vehicles vehicles) capacity) capacity)
@@ -69,13 +62,5 @@ transitions:
       load: (demand to)
       vehicles: (+ vehicles 1)
     cost: (+ cost (+ (distance location 0) (distance 0 to)))
-  - name: return
-    preconditions:
-      - (is_empty unvisited)
-      - (!= location 0)
-    effect:
-      location: 0
-    cost: (+ cost (distance location 0))
 dual_bounds:
-  - (+ (sum min_distance_to unvisited) (if (!= location 0) (min_distance_to 0) 0))
-  - (+ (sum min_distance_from unvisited) (if (!= location 0) (min_distance_from location) 0))
+  - 0

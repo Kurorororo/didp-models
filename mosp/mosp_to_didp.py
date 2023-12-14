@@ -2,14 +2,12 @@
 
 import argparse
 import os
-import subprocess
 import resource
+import subprocess
 import time
 
-import yaml
-
 import read_mosp
-
+import yaml
 
 start = time.perf_counter()
 
@@ -35,7 +33,6 @@ def create_didp(problem_name, item_to_patterns, pattern_to_items):
     )
 
     output_lines = [
-        "domain: MOSP",
         "problem: {}".format(problem_name),
         "object_numbers:",
         "      item: {}".format(m),
@@ -92,16 +89,18 @@ if __name__ == "__main__":
         solution = read_mosp.item_order_to_pattern_order(item_to_patterns, item_order)
 
         print(solution)
-        print("cost: {}".format(cost))
 
-        validation_result = read_mosp.validate(
-            item_to_patterns, pattern_to_items, solution, cost
-        )
+        if cost is not None:
+            print("cost: {}".format(cost))
 
-        if validation_result:
-            print("The solution is valid.")
-        else:
-            print("The solution is invalid.")
+            validation_result = read_mosp.validate(
+                item_to_patterns, pattern_to_items, solution, cost
+            )
+
+            if validation_result:
+                print("The solution is valid.")
+            else:
+                print("The solution is invalid.")
 
     end = time.perf_counter()
     print("Execution time: {}s".format(end - start))

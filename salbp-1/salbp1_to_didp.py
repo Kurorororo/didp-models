@@ -2,14 +2,12 @@
 
 import argparse
 import os
-import subprocess
 import resource
+import subprocess
 import time
 
-import yaml
-
 import read_salbp1
-
+import yaml
 
 start = time.perf_counter()
 
@@ -28,10 +26,10 @@ def get_limit_resource(time_limit, memory_limit):
     return limit_resources
 
 
-def generate_problem(name, number_of_tasks, cycle_time, task_times, predecessors):
+def generate_problem(
+    number_of_tasks, cycle_time, task_times, predecessors, blind=False
+):
     lines = [
-        "domain: SALBP1",
-        "problem: {}".format(name),
         "object_numbers:",
         "      task: {}".format(number_of_tasks),
         "target:",
@@ -55,41 +53,43 @@ def generate_problem(name, number_of_tasks, cycle_time, task_times, predecessors
             + " ],"
         ]
     lines += ["      }"]
-    lines += [
-        "      lb2-weight1: { "
-        + ", ".join(
-            [
-                "{}: {}".format(i, 1)
-                for i in range(number_of_tasks)
-                if task_times[i + 1] > cycle_time / 2
-            ]
-        )
-        + " }",
-        "      lb2-weight2: { "
-        + ", ".join(
-            [
-                "{}: {}".format(i, 0.5)
-                for i in range(number_of_tasks)
-                if task_times[i + 1] == cycle_time / 2
-            ]
-        )
-        + " }",
-        "      lb3-weight: { "
-        + ", ".join(
-            [
-                "{}: {}".format(i, 1.0)
-                if task_times[i + 1] > cycle_time * 2 / 3
-                else "{}: {}".format(i, 2 / 3 // 0.001 / 1000)
-                if task_times[i + 1] == cycle_time * 2 / 3
-                else "{}: {}".format(i, 0.5)
-                if task_times[i + 1] > cycle_time / 3
-                else "{}: {}".format(i, 1 / 3 // 0.001 / 1000)
-                for i in range(number_of_tasks)
-                if task_times[i + 1] >= cycle_time / 3
-            ]
-        )
-        + " }",
-    ]
+
+    if not blind:
+        lines += [
+            "      lb2-weight1: { "
+            + ", ".join(
+                [
+                    "{}: {}".format(i, 1)
+                    for i in range(number_of_tasks)
+                    if task_times[i + 1] > cycle_time / 2
+                ]
+            )
+            + " }",
+            "      lb2-weight2: { "
+            + ", ".join(
+                [
+                    "{}: {}".format(i, 0.5)
+                    for i in range(number_of_tasks)
+                    if task_times[i + 1] == cycle_time / 2
+                ]
+            )
+            + " }",
+            "      lb3-weight: { "
+            + ", ".join(
+                [
+                    "{}: {}".format(i, 1.0)
+                    if task_times[i + 1] > cycle_time * 2 / 3
+                    else "{}: {}".format(i, 2 / 3 // 0.001 / 1000)
+                    if task_times[i + 1] == cycle_time * 2 / 3
+                    else "{}: {}".format(i, 0.5)
+                    if task_times[i + 1] > cycle_time / 3
+                    else "{}: {}".format(i, 1 / 3 // 0.001 / 1000)
+                    for i in range(number_of_tasks)
+                    if task_times[i + 1] >= cycle_time / 3
+                ]
+            )
+            + " }",
+        ]
 
     return "\n".join(lines)
 
@@ -102,21 +102,19 @@ if __name__ == "__main__":
     parser.add_argument("--continuous", action="store_true")
     parser.add_argument("--time-limit", default=None, type=int)
     parser.add_argument("--memory-limit", default=None, type=int)
+    parser.add_argument("--blind", action="store_true")
     args = parser.parse_args()
 
     number_of_tasks, cycle_time, task_times, predecessors, _ = read_salbp1.read(
         args.input
     )
-    name = os.path.basename(args.input)
-    problem = generate_problem(
-        name, number_of_tasks, cycle_time, task_times, predecessors
-    )
+    problem = generate_problem(number_of_tasks, cycle_time, task_times, predecessors)
 
     with open("problem.yaml", "w") as f:
         f.write(problem)
 
-    if args.continuous:
-        domain_path = os.path.join(os.path.dirname(__file__), "domain-continuous.yaml")
+    if args.blind:
+        domain_path = os.path.join(os.path.dirname(__file__), "domain_blind.yaml")
     else:
         domain_path = os.path.join(os.path.dirname(__file__), "domain.yaml")
 

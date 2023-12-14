@@ -2,14 +2,12 @@
 
 import argparse
 import os
-import time
-import subprocess
 import resource
-
-import yaml
+import subprocess
+import time
 
 import read_bpp
-
+import yaml
 
 start = time.perf_counter()
 
@@ -28,10 +26,8 @@ def get_limit_resource(time_limit, memory_limit):
     return limit_resources
 
 
-def generate_problem(name, n, c, weights):
+def generate_problem(n, c, weights, blind=False):
     lines = [
-        "domain: BPP",
-        "problem: {}".format(name),
         "object_numbers:",
         "      item: {}".format(n),
         "target:",
@@ -44,29 +40,33 @@ def generate_problem(name, n, c, weights):
         + ", ".join(["{}: {}".format(j, weights[j]) for j in range(n)])
         + " }",
     ]
-    lines += [
-        "      lb2-weight1: { "
-        + ", ".join(["{}: {}".format(j, 1) for j in range(n) if weights[j] > c / 2])
-        + " }",
-        "      lb2-weight2: { "
-        + ", ".join(["{}: {}".format(j, 0.5) for j in range(n) if weights[j] == c / 2])
-        + " }",
-        "      lb3-weight: { "
-        + ", ".join(
-            [
-                "{}: {}".format(j, 1.0)
-                if weights[j] > c * 2 / 3
-                else "{}: {}".format(j, 2 / 3 // 0.001 / 1000)
-                if weights[j] == c * 2 / 3
-                else "{}: {}".format(j, 0.5)
-                if weights[j] > c / 3
-                else "{}: {}".format(j, 1 / 3 // 0.001 / 1000)
-                for j in range(n)
-                if weights[j] >= c / 3
-            ]
-        )
-        + " }",
-    ]
+
+    if not blind:
+        lines += [
+            "      lb2-weight1: { "
+            + ", ".join(["{}: {}".format(j, 1) for j in range(n) if weights[j] > c / 2])
+            + " }",
+            "      lb2-weight2: { "
+            + ", ".join(
+                ["{}: {}".format(j, 0.5) for j in range(n) if weights[j] == c / 2]
+            )
+            + " }",
+            "      lb3-weight: { "
+            + ", ".join(
+                [
+                    "{}: {}".format(j, 1.0)
+                    if weights[j] > c * 2 / 3
+                    else "{}: {}".format(j, 2 / 3 // 0.001 / 1000)
+                    if weights[j] == c * 2 / 3
+                    else "{}: {}".format(j, 0.5)
+                    if weights[j] > c / 3
+                    else "{}: {}".format(j, 1 / 3 // 0.001 / 1000)
+                    for j in range(n)
+                    if weights[j] >= c / 3
+                ]
+            )
+            + " }",
+        ]
 
     return "\n".join(lines)
 
@@ -76,20 +76,19 @@ if __name__ == "__main__":
     parser.add_argument("input", type=str)
     parser.add_argument("--didp-path", "-d", type=str)
     parser.add_argument("--config-path", "-c", type=str)
-    parser.add_argument("--continuous", action="store_true")
     parser.add_argument("--time-limit", default=None, type=int)
     parser.add_argument("--memory-limit", default=None, type=int)
+    parser.add_argument("--blind", action="store_true")
     args = parser.parse_args()
 
     n, c, weights = read_bpp.read(args.input)
-    name = os.path.basename(args.input)
-    problem = generate_problem(name, n, c, weights)
+    problem = generate_problem(n, c, weights)
 
     with open("problem.yaml", "w") as f:
         f.write(problem)
 
-    if args.continuous:
-        domain_path = os.path.join(os.path.dirname(__file__), "domain-continuous.yaml")
+    if args.blind:
+        domain_path = os.path.join(os.path.dirname(__file__), "domain_blind.yaml")
     else:
         domain_path = os.path.join(os.path.dirname(__file__), "domain.yaml")
 

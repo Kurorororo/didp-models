@@ -52,8 +52,44 @@ def create_model(n, node_weights, edge_weights):
     return model, name_to_node
 
 
-def solve(model, name_to_node, solver_name, history, time_limit=None):
-    if solver_name == "BrFS":
+def solve(
+    model,
+    name_to_node,
+    solver_name,
+    history,
+    time_limit=None,
+    seed=2023,
+    initial_beam_size=1,
+    threads=1,
+    parallel_type=0,
+):
+    if solver_name == "LNBS":
+        if parallel_type == 2:
+            parallelization_method = dp.BeamParallelizationMethod.Sbs
+        elif parallel_type == 1:
+            parallelization_method = dp.BeamParallelizationMethod.Hdbs1
+        else:
+            parallelization_method = dp.BeamParallelizationMethod.Hdbs2
+
+        solver = dp.LNBS(
+            model,
+            f_operator=dp.FOperator.Max,
+            parallelization_method=parallelization_method,
+            threads=threads,
+            time_limit=time_limit,
+            quiet=False,
+        )
+    elif solver_name == "DD-LNS":
+        solver = dp.DDLNS(
+            model,
+            f_operator=dp.FOperator.Max,
+            time_limit=time_limit,
+            quiet=False,
+            seed=seed,
+        )
+    elif solver_name == "FR":
+        solver = dp.ForwardRecursion(model, time_limit=time_limit, quiet=False)
+    elif solver_name == "BrFS":
         solver = dp.BreadthFirstSearch(
             model, f_operator=dp.FOperator.Max, time_limit=time_limit, quiet=False
         )
@@ -82,19 +118,36 @@ def solve(model, name_to_node, solver_name, history, time_limit=None):
             model, f_operator=dp.FOperator.Max, time_limit=time_limit, quiet=False
         )
     else:
+        if parallel_type == 2:
+            parallelization_method = dp.BeamParallelizationMethod.Sbs
+        elif parallel_type == 1:
+            parallelization_method = dp.BeamParallelizationMethod.Hdbs1
+        else:
+            parallelization_method = dp.BeamParallelizationMethod.Hdbs2
+
         solver = dp.CABS(
-            model, f_operator=dp.FOperator.Max, time_limit=time_limit, quiet=False
+            model,
+            initial_beam_size=initial_beam_size,
+            threads=threads,
+            parallelization_method=parallelization_method,
+            time_limit=time_limit,
+            quiet=False,
         )
 
-    with open(history, "w") as f:
-        is_terminated = False
+    if solver_name == "FR":
+        solution = solver.search()
+    else:
+        with open(history, "w") as f:
+            is_terminated = False
 
-        while not is_terminated:
-            solution, is_terminated = solver.search_next()
+            while not is_terminated:
+                solution, is_terminated = solver.search_next()
 
-            if solution.cost is not None:
-                f.write("{}, {}\n".format(time.perf_counter() - start, solution.cost))
-                f.flush()
+                if solution.cost is not None:
+                    f.write(
+                        "{}, {}\n".format(time.perf_counter() - start, solution.cost)
+                    )
+                    f.flush()
 
     print("Search time: {}s".format(solution.time))
     print("Expanded: {}".format(solution.expanded))
@@ -117,6 +170,10 @@ if __name__ == "__main__":
     parser.add_argument("--time-out", default=1800, type=int)
     parser.add_argument("--history", default="history.csv", type=str)
     parser.add_argument("--config", default="CABS", type=str)
+    parser.add_argument("--seed", default=2023, type=int)
+    parser.add_argument("--threads", default=1, type=int)
+    parser.add_argument("--initial-beam-size", default=1, type=int)
+    parser.add_argument("--parallel-type", default=0, type=int)
     args = parser.parse_args()
 
     n, a, b = read_graph_clear.read(args.input)
@@ -127,6 +184,10 @@ if __name__ == "__main__":
         args.config,
         args.history,
         time_limit=args.time_out,
+        seed=args.seed,
+        threads=args.threads,
+        initial_beam_size=args.initial_beam_size,
+        parallel_type=args.parallel_type,
     )
 
     if is_infeasible:

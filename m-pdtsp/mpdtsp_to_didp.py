@@ -2,20 +2,18 @@
 
 import argparse
 import os
-import time
-import subprocess
 import resource
-
-import yaml
+import subprocess
+import time
 
 import read_tsplib
+import yaml
 from mpdtsp_util import (
-    compute_precedence,
-    compute_predecessors_and_successors,
     check_edge,
     compute_not_inferred_precedence,
+    compute_precedence,
+    compute_predecessors_and_successors,
 )
-
 
 start = time.perf_counter()
 
@@ -56,7 +54,7 @@ def compute_min_distance_from(nodes, edges):
     return result
 
 
-def generate_problem(name, n, nodes, edges, capacity, items, demand):
+def generate_problem(n, nodes, edges, capacity, items, demand, blind=False):
     precedence_edges = compute_precedence(nodes, items, demand)
     (
         predecessors,
@@ -83,8 +81,6 @@ def generate_problem(name, n, nodes, edges, capacity, items, demand):
     min_distance_from = compute_min_distance_from(nodes, filtered_edges)
 
     output_lines = [
-        "domain: mPDTSP",
-        "problem: {}".format(name),
         "object_numbers:",
         "      customer: {}".format(n),
         "target:",
@@ -97,25 +93,32 @@ def generate_problem(name, n, nodes, edges, capacity, items, demand):
         "      demand: { "
         + ", ".join(["{}: {}".format(i - 1, total_demand[i]) for i in nodes])
         + " }",
-        "      min_distance_to: { "
-        + ", ".join("{}: {}".format(i - 1, min_distance_to[i]) for i in nodes)
-        + " }",
-        "      min_distance_from: { "
-        + ", ".join("{}: {}".format(i - 1, min_distance_from[i]) for i in nodes)
-        + " }",
         "      connected: { "
         + ", ".join("[{}, {}]: true".format(i - 1, j - 1) for i, j in filtered_edges)
         + " }",
         "      predecessors:",
         "            {",
     ]
+
     for i in nodes:
         output_lines.append(
             "                 {}: [ ".format(i - 1)
             + ", ".join(str(j - 1) for j in predecessors[i])
             + " ],"
         )
+
     output_lines.append("      }")
+
+    if not blind:
+        output_lines += [
+            "      min_distance_to: { "
+            + ", ".join("{}: {}".format(i - 1, min_distance_to[i]) for i in nodes)
+            + " }",
+            "      min_distance_from: { "
+            + ", ".join("{}: {}".format(i - 1, min_distance_from[i]) for i in nodes)
+            + " }",
+        ]
+
     output_lines += [
         "      distance:",
         "            {",
@@ -136,17 +139,26 @@ if __name__ == "__main__":
     parser.add_argument("--config-path", "-c", type=str)
     parser.add_argument("--time-limit", default=None, type=int)
     parser.add_argument("--memory-limit", default=None, type=int)
+    parser.add_argument("--non-zero-base-case", action="store_true")
+    parser.add_argument("--blind", action="store_true")
     args = parser.parse_args()
 
-    name = os.path.basename(args.input)
-
     n, nodes, edges, capacity, m, items, demand, _ = read_tsplib.read_mpdtsp(args.input)
-    problem = generate_problem(name, n, nodes, edges, capacity, items, demand)
+    problem = generate_problem(n, nodes, edges, capacity, items, demand, args.blind)
 
     with open("problem.yaml", "w") as f:
         f.write(problem)
 
-    domain_path = os.path.join(os.path.dirname(__file__), "domain.yaml")
+    domain_file = (
+        "domain_non_zero_base_blind.yaml"
+        if args.non_zero_base_case and args.blind
+        else "domain_non_zero_base.yaml"
+        if args.non_zero_base_case
+        else "domain_blind.yaml"
+        if args.blind
+        else "domain.yaml"
+    )
+    domain_path = os.path.join(os.path.dirname(__file__), domain_file)
 
     if args.didp_path is not None:
         fn = get_limit_resource(args.time_limit, args.memory_limit)
@@ -166,6 +178,9 @@ if __name__ == "__main__":
                 solution.append(transition["parameters"]["to"] + 1)
             if transition["name"] == "finish":
                 solution.append(n)
+
+        if args.non_zero_base_case:
+            solution.append(n)
 
         print(solution)
         print("cost: {}".format(cost))
