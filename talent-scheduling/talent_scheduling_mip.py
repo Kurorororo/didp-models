@@ -110,7 +110,7 @@ def solve(
         model.optimize()
     else:
         with open(history, "w") as f:
-            callback = get_callback(f)
+            callback = get_callback(f, base_cost)
             model.optimize(callback)
 
     status = model.getAttr("Status")
