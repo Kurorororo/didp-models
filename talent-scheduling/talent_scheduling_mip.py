@@ -125,7 +125,7 @@ def solve(
     if status == gp.GRB.INFEASIBLE:
         print("infeasible")
     else:
-        best_bound = model.getAttr("ObjBound")
+        best_bound = model.getAttr("ObjBound") + base_cost
 
     if sol_count > 0:
         start_days = []
