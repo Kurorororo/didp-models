@@ -11,13 +11,13 @@ import read_talent_scheduling
 start = time.perf_counter()
 
 
-def get_callback(file, base_cost):
+def get_callback(file):
     def dump_solution(model, where):
         if where == gp.GRB.Callback.MIPSOL:
             file.write(
                 "{}, {}\n".format(
                     time.perf_counter() - start,
-                    round(model.cbGet(gp.GRB.Callback.MIPSOL_OBJ)) + base_cost,
+                    round(model.cbGet(gp.GRB.Callback.MIPSOL_OBJ))
                 )
             )
 
