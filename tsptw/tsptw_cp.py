@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 
 import argparse
-import copy
 import time
+
 import docplex.cp.model as cp
-
 import read_tsptw
-
 
 start = time.perf_counter()
 
@@ -15,15 +13,6 @@ def solve(nodes, edges, a, b, time_limit=None, threads=1, history=None):
     edges_matrix = [
         [edges[i, j] if (i, j) in edges else 0 for j in nodes] for i in nodes
     ]
-    shortest_distance_matrix = copy.deepcopy(edges_matrix)
-
-    for k in nodes[1:]:
-        for i in nodes:
-            for j in nodes:
-                d = shortest_distance_matrix[i][k] + shortest_distance_matrix[k][j]
-
-                if shortest_distance_matrix[i][j] > d:
-                    shortest_distance_matrix[i][j] = d
 
     model = cp.CpoModel()
     x = []
@@ -36,11 +25,10 @@ def solve(nodes, edges, a, b, time_limit=None, threads=1, history=None):
                     start=(a[i], cp.INTERVAL_MAX), end=(a[i], b[i]), length=0
                 )
             )
+
     pi = cp.sequence_var(x, types=nodes)
     distance = cp.transition_matrix(edges_matrix)
     model.add(cp.no_overlap(pi, distance, is_direct=True))
-    shortest_distance = cp.transition_matrix(shortest_distance_matrix)
-    model.add(cp.no_overlap(pi, shortest_distance))
     model.add(cp.first(pi, x[0]))
     model.add(
         cp.minimize(
@@ -73,6 +61,8 @@ def solve(nodes, edges, a, b, time_limit=None, threads=1, history=None):
                             time.perf_counter() - start, result.get_objective_value()
                         )
                     )
+
+    print("Search time: {}s".format(result.get_solve_time()))
 
     if result.is_solution():
         scheduled = set([0])
