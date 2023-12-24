@@ -4,9 +4,7 @@ import argparse
 import time
 
 import gurobipy as gp
-
 import read_graph_clear
-
 
 start = time.perf_counter()
 
@@ -88,6 +86,7 @@ def solve(
 
     status = model.getAttr("Status")
     sol_count = model.getAttr("SolCount")
+    print("Search time: {}s".format(model.getAttr("Runtime")))
 
     if status == gp.GRB.INFEASIBLE:
         print("infeasible")
@@ -118,6 +117,8 @@ def solve(
         cost = round(model.objVal)
         print(solution)
         print("cost: {}".format(cost))
+        best_bound = model.getAttr("ObjBound")
+        gap = model.getAttr("MIPGap")
 
         validation_result = read_graph_clear.validate(
             n, node_weights, edge_weights, solution, cost
@@ -131,7 +132,11 @@ def solve(
                 print("gap: {}".format(model.getAttr("MIPGap")))
                 print("best bound: {}".format(model.getAttr("ObjBound")))
         else:
+            # It is possible that the objective cost does not match the actual cost
+            # as the constraints are inequalities.
             print("The solution is invalid.")
+            print("gap: {}".format(gap))
+            print("best bound: {}".format(best_bound))
 
 
 if __name__ == "__main__":

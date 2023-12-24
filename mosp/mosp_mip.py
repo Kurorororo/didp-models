@@ -22,7 +22,7 @@ def get_callback(file):
     return dump_solution
 
 
-def solve(item_to_patterns, pattern_to_items, time_limit=None, threads=1, history=None):
+def solve(item_to_patterns, pattern_to_items, time_limit=None, threads=1, history=None, memory_limit=None):
     item_to_neighbors = read_mosp.compute_item_to_neighbors(
         item_to_patterns, pattern_to_items
     )
@@ -34,10 +34,17 @@ def solve(item_to_patterns, pattern_to_items, time_limit=None, threads=1, histor
     times = list(range(t_bar))
 
     model = gp.Model()
+
     model.setParam("Threads", threads)
+
     if time_limit is not None:
         model.setParam("TimeLimit", time_limit)
+
+    if memory_limit is not None:
+        model.params.SoftMemLimit = memory_limit
+
     model.setParam("OutputFlag", 0)
+
     x = model.addVars(items, times, vtype=gp.GRB.BINARY)
     w = model.addVars(items, times, vtype=gp.GRB.BINARY)
     c = model.addVar(vtype=gp.GRB.INTEGER, lb=0, obj=1)
@@ -62,6 +69,7 @@ def solve(item_to_patterns, pattern_to_items, time_limit=None, threads=1, histor
 
     status = model.getAttr("Status")
     sol_count = model.getAttr("SolCount")
+    print("Search time: {}s".format(model.getAttr("Runtime")))
 
     if status == gp.GRB.INFEASIBLE:
         print("infeasible")
@@ -92,6 +100,8 @@ def solve(item_to_patterns, pattern_to_items, time_limit=None, threads=1, histor
             # It is possible that the objective cost does not match the actual cost
             # as the constraints are inequalities.
             print("The solution is invalid.")
+            print("gap: {}".format(model.getAttr("MIPGap")))
+            print("best bound: {}".format(model.getAttr("ObjBound")))
 
 
 if __name__ == "__main__":
@@ -100,6 +110,7 @@ if __name__ == "__main__":
     parser.add_argument("--threads", type=int, default=1)
     parser.add_argument("--time-out", default=1800, type=float)
     parser.add_argument("--history", type=str)
+    parser.add_argument("--memory-out", type=float)
     args = parser.parse_args()
 
     item_to_patterns, pattern_to_items = read_mosp.read(args.input)
@@ -109,4 +120,5 @@ if __name__ == "__main__":
         time_limit=args.time_out,
         threads=args.threads,
         history=args.history,
+        memory_limit=args.memory_out,
     )
