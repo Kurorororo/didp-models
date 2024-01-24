@@ -1,0 +1,4 @@
+solver: dual_bound_dfbb
+config:
+  time_limit: 1800
+dump_to: history.csv
