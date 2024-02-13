@@ -7,7 +7,7 @@ python3 talent_scheduling_mip.py instance.txt --history history.csv --time-out 1
 ```
 
 ```python3
-python3 talent_scheduling_cp.py instance.txt --history history.csv --time-out 1800
+python3 talent_scheduling_cp.py instance.txt --all-different --history history.csv --time-out 1800
 ```
 
 ## Kuroiwa and Beck 2023 Anytime and Journal Submission
