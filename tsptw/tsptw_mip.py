@@ -4,9 +4,7 @@ import argparse
 import time
 
 import gurobipy as gp
-
 import read_tsptw
-
 
 start = time.perf_counter()
 
@@ -36,6 +34,8 @@ def solve_tsptw(
     time_window_reduction=False,
     mtz=False,
     history=None,
+    makespan=False,
+    mip_gap=1e-4,
 ):
     if time_window_reduction:
         a, b = read_tsptw.reduce_time_window(nodes, edges, a, b)
@@ -46,13 +46,21 @@ def solve_tsptw(
     nodes_wo_0 = [i for i in nodes if i > 0]
 
     model = gp.Model()
+    model.setParam("MipGap", mip_gap)
     model.setParam("Threads", threads)
     if time_limit is not None:
         model.setParam("TimeLimit", time_limit)
     model.setParam("OutputFlag", 0)
-    x = model.addVars(edges.keys(), vtype=gp.GRB.BINARY, obj=edges)
+
     t = model.addVars(nodes_wo_0, vtype=gp.GRB.CONTINUOUS, lb=a, ub=b)
-    t_n = model.addVar(vtype=gp.GRB.CONTINUOUS)
+
+    if makespan:
+        x = model.addVars(edges.keys(), vtype=gp.GRB.BINARY)
+        t_n = model.addVar(vtype=gp.GRB.CONTINUOUS, obj=1)
+    else:
+        x = model.addVars(edges.keys(), vtype=gp.GRB.BINARY, obj=edges)
+        t_n = model.addVar(vtype=gp.GRB.CONTINUOUS)
+
     model.addConstrs(t[i] - edges[0, i] * x[0, i] >= 0 for i in nodes_wo_0)
     model.addConstrs(
         t[i] - t[j] + (b[i] - a[j] + edges[i, j]) * x[i, j] <= b[i] - a[j]
@@ -104,7 +112,11 @@ def solve_tsptw(
         cost = model.objVal
         print("cost: {}".format(cost))
 
-        validation_result = read_tsptw.validate(n, edges, a, b, tour, cost)
+        validation_result = read_tsptw.validate(
+            n, edges, a, b, tour, cost, makespan=makespan
+        )
+
+        print("Search time: {}s".format(model.getAttr("Runtime")))
 
         if validation_result:
             print("The solution is valid.")
@@ -146,12 +158,12 @@ def add_flow_based(n, nodes, edges, x, model):
 def reduce_edges(nodes, edges, a, b):
     print("edges: {}".format(len(edges)))
     forward_dependent = []
-    for (i, j) in edges.keys():
+    for i, j in edges.keys():
         if i == 0 or j == 0 or a[i] <= b[j]:
             forward_dependent.append((i, j))
 
     direct_forward_dependent = {}
-    for (i, j) in forward_dependent:
+    for i, j in forward_dependent:
         if (
             i == 0
             or j == 0
@@ -173,6 +185,8 @@ if __name__ == "__main__":
     parser.add_argument("--mtz", "-m", action="store_true")
     parser.add_argument("--time-out", default=1800, type=float)
     parser.add_argument("--history", type=str)
+    parser.add_argument("--makespan", action="store_true")
+    parser.add_argument("--mip-gap", default=1e-4, type=float)
     args = parser.parse_args()
 
     n, nodes, edges, a, b = read_tsptw.read(args.input)
@@ -188,4 +202,6 @@ if __name__ == "__main__":
         time_window_reduction=args.time_window_reduction,
         mtz=args.mtz,
         history=args.history,
+        makespan=args.makespan,
+        mip_gap=args.mip_gap,
     )

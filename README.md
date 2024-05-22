@@ -8,4 +8,4 @@ This repository stores DyPDL, MIP, and CP models used in the following papers.
 - Kuroiwa and Beck 2024 Parallel: Ryo Kuroiwa and J. Christopher Beck. [Parallel Beam Search Algorithms for Domain-Independent Dynamic Programming.](https://tidel.mie.utoronto.ca/pubs/aaai24-parallel-camera-ready.pdf) In Proceedings of the 38th Annual AAAI Conference on Artificial Intelligence (AAAI). 2024. [supplement](https://tidel.mie.utoronto.ca/pubs/Appendix_Parallel_AAAI24.pdf)
 - Journal submission
 
-In addition, PDDL models for some problems are provided.
+In addition, PDDL models for some problems and Picat models are provided.

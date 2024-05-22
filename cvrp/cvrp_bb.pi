@@ -1,0 +1,90 @@
+import planner.
+
+final({[],I,_,_},Plan,Cost) =>
+    Plan = [1],
+    c(C),
+    Cost = C[I,1].
+
+action({U,I,L,K},NState,Action,ActionCost),
+    select(J,U,NU),
+    d(D),
+    q(Q),
+    L + D[J] <= Q,
+    constraint(NU,L+D[J],K),
+?=>
+    Action = J,
+    c(C),
+    ActionCost = C[I,J],
+    NState = {NU,J,L+D[J],K}.
+
+action({U,I,L,K},NState,Action,ActionCost),
+    m(M),
+    K + 1 <= M,
+    select(J,U,NU),
+    d(D),
+    constraint(NU,D[J],K+1),
+?=>
+    Action = [1,J],
+    c(C),
+    ActionCost = C[I,1]+C[1,J],
+    NState = {NU,J,D[J],K+1}.
+
+constraint(U,L,K) => 
+    m(M),
+    q(Q),
+    d(D),
+    sum([D[J] : J in U]) + L <= (M-K+1) * Q.
+
+heuristic({U,I,_,_}) = H =>
+    minto(MinTo),
+    H1 = sum([MinTo[J] : J in U]),
+    if I !== 1 then
+        H1 := H1 + MinTo[1]
+    end,
+
+    minfrom(MinFrom),
+    H2 = sum([MinFrom[J] : J in U]),
+    if I !== 1 then
+        H2 := H2 + MinFrom[I]
+    end,
+
+    H = max(H1,H2).
+
+main(Args) =>
+    [Filename|T] = Args,
+    Reader = open(Filename),
+    N = read_int(Reader),
+    M = read_int(Reader),
+    Q = read_int(Reader),
+
+    C = new_array(N, N),
+    foreach (I in 1..N)
+        foreach (J in 1..N)
+            C[I,J] = read_int(Reader)
+        end
+    end,
+
+    D = new_array(N),
+    foreach (I in 1..N)
+        D[I] = read_int(Reader),
+    end,
+
+    close(Reader),
+
+    MinTo = new_array(N),
+    foreach (I in 1..N)
+        MinTo[I] = min([C[J,I] : J in 1..N, I !== J])
+    end,
+
+    MinFrom = new_array(N),
+    foreach (I in 1..N)
+        MinFrom[I] = min([C[I,J] : J in 1..N, I !== J])
+    end,
+
+    cl_facts_table([$q(Q), $m(M), $c(C), $d(D), $minto(MinTo), $minfrom(MinFrom)]),
+
+    best_plan_bb({2..N,1,0,1},Plan,Cost),
+
+    println(Plan),
+    print("cost: "),
+    println(Cost).

@@ -1,0 +1,44 @@
+table(+,-,max,nt)
+dp({I,_},Plan,Cost,(N,_,_,_)), I == N + 1 => Plan = [], Cost = 0.
+dp({I,R},Plan,Cost,(N,M,P,W)),
+    foreach (J in 1..M)
+        W[I,J] <= R[J]
+    end,
+?=>
+    NR = {R[J] - W[I,J] : J in 1..M},
+    dp({I+1,NR},NPlan,NCost,(N,M,P,W)),
+    Cost = P[I] + NCost,
+    Plan = [I|NPlan].
+
+dp({I,R},Plan,Cost,(N,M,P,W)) =>
+    dp({I+1,R},Plan,Cost,(N,M,P,W)).
+
+main(Args) =>
+    [Filename|_] = Args,
+    Reader = open(Filename),
+    N = read_int(Reader),
+    M = read_int(Reader),
+    _ = read_int(Reader),
+
+    P = new_array(N),
+    foreach (I in 1..N)
+        P[I] = read_int(Reader)
+    end,
+
+    W = new_array(N,M),
+    foreach (J in 1..M, I in 1..N)
+        W[I,J] = read_int(Reader)
+    end,
+
+    Q = new_array(M),
+    foreach (I in 1..M)
+        Q[I] = read_int(Reader)
+    end,
+
+    close(Reader),
+
+    dp({1,Q},Plan,Cost,(N,M,P,W)),
+
+    println(Plan),
+    print("cost: "),
+    println(Cost).

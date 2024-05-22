@@ -10,7 +10,7 @@ import read_tsplib
 
 def generate_problem(name, nodes, edges, capacity, demand, depot, k):
     output_lines = [
-        "(define (problem {})".format(name.replace(".", "_")),
+        "(define (problem {})".format(name),
         "    (:domain CVRP)",
         "    (:objects",
         "        "
@@ -38,6 +38,19 @@ def generate_problem(name, nodes, edges, capacity, demand, depot, k):
             if (i, j) in edges:
                 output_lines.append(
                     "        (= (travel-cost {} {}) {})".format(c_i, c_j, edges[i, j])
+                )
+
+    for i in nodes:
+        if i == depot:
+            continue
+        for j in nodes:
+            if i == j or j == depot:
+                continue
+            if (i, j) in edges:
+                output_lines.append(
+                    "        (= (travel-cost-via-depot c{} c{}) {})".format(
+                        i, j, edges[i, depot] + edges[depot, j]
+                    )
                 )
 
     output_lines += ["    )", "    (:goal", "         (and", "             (loc d1)"]

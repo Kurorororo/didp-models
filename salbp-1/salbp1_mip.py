@@ -5,9 +5,7 @@ import math
 import time
 
 import gurobipy as gp
-
 import read_salbp1
-
 
 start = time.perf_counter()
 
@@ -31,6 +29,7 @@ def solve(
     task_times,
     predecessors,
     followers,
+    use_all_followers=False,
     time_limit=None,
     threads=1,
     verbose=False,
@@ -93,7 +92,7 @@ def solve(
             x[s, j] for s in stations if earliest[j] <= s <= latest[j] and s <= k
         )
         for i in tasks
-        for j in all_followers[i]
+        for j in (all_followers[i] if use_all_followers else followers[i])
         for k in stations
     )
 
@@ -106,6 +105,7 @@ def solve(
 
     status = model.getAttr("Status")
     sol_count = model.getAttr("SolCount")
+    print("Search time: {}s".format(model.getAttr("Runtime")))
 
     if status == gp.GRB.INFEASIBLE:
         print("infeasible")
@@ -186,6 +186,7 @@ if __name__ == "__main__":
     parser.add_argument("--threads", "-t", type=int, default=1)
     parser.add_argument("--verbose", "-v", action="store_true")
     parser.add_argument("--time-out", default=1800, type=float)
+    parser.add_argument("--all-followers", action="store_true")
     parser.add_argument("--history", type=str)
     args = parser.parse_args()
 
@@ -198,6 +199,7 @@ if __name__ == "__main__":
         task_times,
         predecessors,
         followers,
+        use_all_followers=args.all_followers,
         time_limit=args.time_out,
         threads=args.threads,
         verbose=args.verbose,

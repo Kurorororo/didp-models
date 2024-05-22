@@ -1,0 +1,108 @@
+import ordset.
+import planner.
+
+final([]) => true.
+
+action(Q,NState,Action,ActionCost),
+    select(S,Q,NQ),
+    a(A),
+    all(All),
+    Done = All.subtract(Q),
+    Came = new_ordset([]),
+    foreach (I in Done)
+        Came := Came.union(A[I]),
+    end,
+    Will = new_ordset([]),
+    foreach (I in Q)
+        Will := Will.union(A[I]),
+    end,
+    L = Came.intersection(Will),
+    A == L,
+=>
+    Action = S,
+    b(B),
+    ActionCost = B[S],
+    NState = NQ.
+
+action(Q,NState,Action,ActionCost),
+    select(S,Q,NQ),
+    a(A),
+    all(All),
+    Done = All.subtract(Q),
+    Came = new_ordset([]),
+    foreach (I in Done)
+        Came := Came.union(A[I]),
+    end,
+    CameOrAS = Came.union(A[S]),
+    o(O),
+    Result = true,
+    foreach (T in Q.intersection(O[S]), break(Result == false))
+        if A[T].subset(CameOrAS) then
+            Result := false,
+        end,
+    end,
+    Result,
+?=>
+    Action = S,
+    Will = new_ordset([]),
+    foreach (I in Q)
+        Will := Will.union(A[I]),
+    end,
+    L = Came.intersection(Will).union(A[S]),
+    Cost = 0,
+    c(C),
+    foreach (I in L)
+        Cost := Cost + C[I],
+    end,
+    d(D),
+    ActionCost = D[S] * Cost,
+    NState = NQ.
+
+heuristic(Q) = H =>
+    b(B),
+    H = sum([B[I] : I in Q]).
+
+main(Args) =>
+    [Filename|T] = Args,
+    Reader = open(Filename),
+    N = read_int(Reader),
+    AS = new_ordset(1..N),
+    M = read_int(Reader),
+
+    A = {new_ordset([]) : _ in 1..N},
+    C = new_array(M),
+    foreach (I in 1..M)
+        foreach (J in 1..N)
+            AV = read_int(Reader),
+            if AV == 1 then
+                A[J] := A[J].insert(I)
+            end
+        end,
+        C[I] = read_int(Reader),
+    end,
+
+    D = new_array(N),
+    foreach (J in 1..N)
+        D[J] = read_int(Reader),
+    end,
+
+    close(Reader),
+
+    B = {D[J] * sum([C[I] : I in A[J]]) : J in 1..N},
+
+    O = new_array(N),
+    foreach (I in 1..N)
+        O[I] = new_ordset([]),
+        foreach (J in 1..N)
+            if I !== J, A[I].subset(A[J]) then
+               O[I] := O[I].insert(J),
+            end
+        end,
+    end,
+
+    cl_facts_table([$all(AS), $a(A), $b(B), $c(C), $d(D), $o(O)]),
+
+    best_plan_bb(new_ordset(1..N),Plan,Cost),
+    println(Plan),
+    print("cost: "),
+    println(Cost).

@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 
 import argparse
-import re
 import os
+import re
 import time
 
 import docplex.cp.model as cp
-
 import read_tsplib
-
 
 start = time.perf_counter()
 
@@ -21,6 +19,7 @@ def solve_alternative(
     demand,
     depot,
     routes=None,
+    manually_alternative=False,
     time_limit=None,
     threads=1,
     history=None,
@@ -34,13 +33,25 @@ def solve_alternative(
     model = cp.CpoModel()
     tvisit = [
         [
-            cp.interval_var(start=0, length=1)
-            if i == depot
-            else cp.interval_var(length=1, optional=True)
+            (
+                cp.interval_var(start=0, length=1)
+                if i == depot
+                else cp.interval_var(length=1, optional=True)
+            )
             for i in nodes
         ]
         for _ in range(m)
     ]
+
+    if not manually_alternative:
+        visit = [
+            (
+                cp.interval_var(start=0, length=1)
+                if i == depot
+                else cp.interval_var(length=1)
+            )
+            for i in nodes
+        ]
 
     pi = [cp.sequence_var(tvisit[k], list(range(n))) for k in range(m)]
     distance = cp.transition_matrix(edges_matrix)
@@ -56,11 +67,22 @@ def solve_alternative(
             )
             <= capacity
         )
+
     for i in nodes:
         if i != depot:
-            model.add(
-                cp.sum(cp.presence_of(tvisit[k][node_to_idx[i]]) for k in range(m)) == 1
-            )
+            if manually_alternative:
+                model.add(
+                    cp.sum(cp.presence_of(tvisit[k][node_to_idx[i]]) for k in range(m))
+                    == 1
+                )
+            else:
+                model.add(
+                    cp.alternative(
+                        visit[node_to_idx[i]],
+                        [tvisit[k][node_to_idx[i]] for k in range(m)],
+                    )
+                )
+
     model.add(
         cp.minimize(
             cp.sum(
@@ -78,6 +100,10 @@ def solve_alternative(
             )
         )
     )
+
+    if not manually_alternative:
+        phase = cp.search_phase(vars=pi)
+        model.set_search_phases(phase)
 
     if args.history is None:
         result = model.solve(
@@ -99,6 +125,8 @@ def solve_alternative(
                             time.perf_counter() - start, result.get_objective_value()
                         )
                     )
+
+    print("Search time: {}s".format(result.get_solve_time()))
 
     if result.is_solution():
         solution = []
@@ -164,9 +192,13 @@ def solve_single_resource(
         + max(edges[i, depot] for i in nodes if i != depot)
     )
     visit = [
-        cp.interval_var(start=0, end=0, length=0)
-        if i == depot
-        else cp.interval_var(start=(0, cp.INTERVAL_MAX), end=(0, m * horizon), length=0)
+        (
+            cp.interval_var(start=0, end=0, length=0)
+            if i == depot
+            else cp.interval_var(
+                start=(0, cp.INTERVAL_MAX), end=(0, m * horizon), length=0
+            )
+        )
         for i in nodes
     ]
     for i in range(m):
@@ -268,6 +300,7 @@ if __name__ == "__main__":
     parser.add_argument("--threads", "-t", type=int, default=1)
     parser.add_argument("--single-resource", "-s", action="store_true")
     parser.add_argument("--not-fix-route", "-n", action="store_true")
+    parser.add_argument("--manually-alternative", action="store_true")
     parser.add_argument("--time-out", default=1800, type=float)
     parser.add_argument("--history", type=str)
     args = parser.parse_args()
@@ -304,6 +337,7 @@ if __name__ == "__main__":
             demand,
             depot,
             routes=k,
+            manually_alternative=args.manually_alternative,
             time_limit=args.time_out,
             threads=args.threads,
             history=args.history,

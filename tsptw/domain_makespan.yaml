@@ -1,0 +1,67 @@
+objects:
+  - customer
+state_variables:
+  - name: unvisited
+    type: set
+    object: customer
+  - name: location
+    type: element
+    object: customer
+  - name: time
+    type: integer
+    preference: less
+tables:
+  - name: ready_time
+    type: integer
+    args:
+      - customer
+  - name: due_date
+    type: integer
+    args:
+      - customer
+  - name: distance
+    type: integer
+    args:
+      - customer
+      - customer
+    default: 0
+  - name: shortest_distance
+    type: integer
+    args:
+      - customer
+      - customer
+    default: 0
+  - name: min_distance_to
+    type: integer
+    args:
+      - customer
+  - name: min_distance_from
+    type: integer
+    args:
+      - customer
+constraints:
+  - condition: (<= (+ time (shortest_distance location to)) (due_date to))
+    forall:
+      - name: to
+        object: unvisited
+base_cases:
+  - conditions:
+      - (is_empty unvisited)
+    cost: (distance location 0)
+reduce: min
+cost_type: integer
+transitions:
+  - name: visit
+    parameters:
+      - name: to
+        object: unvisited
+    preconditions:
+      - (<= (+ time (distance location to)) (due_date to))
+    effect:
+      unvisited: (remove to unvisited)
+      location: to
+      time: (max (+ time (distance location to)) (ready_time to))
+    cost: (+ cost (max (distance location to) (- (ready_time to) time)))
+dual_bounds:
+  - (+ (sum min_distance_to unvisited) (min_distance_to 0))
+  - (+ (sum min_distance_from unvisited) (min_distance_from location))

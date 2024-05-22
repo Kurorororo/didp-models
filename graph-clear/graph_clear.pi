@@ -1,0 +1,39 @@
+import ordset.
+
+table(+,-,min,nt)
+dp(C,Plan,Cost,(N,_,_)), length(C) == N, => Plan = [], Cost = 0.
+dp(C,Plan,Cost,(N,A,B)) =>
+    U = [I : I in 1..N, not membchk(I, C)],
+    select(I,U,NU),
+    Cost1 = A[I] + sum([B[J,K] : J in C, K in NU]),
+    dp(C.insert(I),NPlan,NCost,(N,A,B)),
+    Cost = max(Cost1, NCost),
+    Plan = [I|NPlan].
+
+main(Args) =>
+    [Filename|T] = Args,
+    Reader = open(Filename),
+    N = read_int(Reader),
+    M = read_int(Reader),
+
+    A = new_array(N),
+    foreach (I in 1..N)
+        A[I] := read_int(Reader)
+    end,
+
+    B = new_array(N, N),
+    foreach (I in 1..N)
+        foreach (J in 1..N)
+            B[I,J] = read_int(Reader)
+        end
+    end,
+
+    close(Reader),
+
+    A := {A[I] + sum([B[I,J] : J in 1..N]) : I in 1..N},
+
+    dp(new_ordset([]),Plan,Cost,(N,A,B)),
+
+    println(Plan),
+    print("cost: "),
+    println(Cost).

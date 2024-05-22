@@ -1,0 +1,114 @@
+import ordset.
+import planner.
+
+final({[], _}) => true.
+
+action({U,R},NState,Action,ActionCost),
+    Result = true,
+    w(W),
+    p(P),
+    foreach (I in U, break(Result == false))
+        if R >= W[I], disjoint(P[I],U) then
+            Result := false
+        end
+    end,
+    Result,
+=>
+    Action = "open",
+    ActionCost = 1,
+    q(Q),
+    NState = {U,Q}.
+
+action({U,R},NState,Action,ActionCost),
+    select(I,U,NU),
+    w(W),
+    R >= W[I],
+    p(P),
+    disjoint(P[I],U),
+?=>
+    Action = I,
+    ActionCost = 0,
+    NState = {NU,R-W[I]}.
+
+heuristic({U,R}) = H =>
+    LB1 = lb1(U,R),
+    LB2 = lb2(U,R),
+    LB3 = lb3(U,R),
+    H = max(max(LB1,LB2), LB3).
+
+lb1(U,R) = LB =>
+    q(Q),
+    w(W),
+    Sum = sum([W[I] : I in U]),
+    LB = ceiling((Sum - R) / Q).
+
+lb2(U,R) = LB =>
+    q(Q),
+    w(W),
+    LB1 = 0,
+    LB2 = 0,
+    foreach (I in U)
+        if W[I] > Q / 2 then
+            LB1 := LB1 + 1
+        elseif W[I] == Q / 2 then
+            LB2 := LB2 + 0.5
+        end
+    end,
+    LB = LB1 + ceiling(LB2),
+    if R >= Q / 2 then
+        LB := LB - 1
+    end.
+
+lb3(U,R) = LB =>
+    q(Q),
+    w(W),
+    LB = 0,
+    foreach (I in U)
+        if W[I] > 2 * Q / 3 then
+            LB := LB + 1
+        elseif W[I] == 2 * Q / 3 then
+            LB := LB + 0.666
+        elseif W[I] > Q / 3 then
+            LB := LB + 0.5
+        elseif W[I] == Q / 3 then
+            LB := LB + 0.333
+        end
+    end,
+    LB := ceiling(LB),
+    if R >= Q / 3 then
+        LB := LB - 1
+    end.
+
+main(Args) =>
+    [Filename|T] = Args,
+    Reader = open(Filename),
+    N = read_int(Reader),
+    Q = read_int(Reader),
+
+    W = new_array(N),
+    foreach (I in 1..N)
+        W[I] = read_int(Reader),
+    end,
+
+    NR = read_int(Reader),
+    R = new_set(NR),
+    foreach (K in 1..NR)
+        I := read_int(Reader),
+        J := read_int(Reader),
+        R.put((I,J))
+    end,
+
+    close(Reader),
+
+    P = new_array(N),
+    foreach (I in 1..N)
+        P[I] = new_ordset([J : J in 1..N, R.has_key((J,I))]),
+    end,
+
+    cl_facts_table([$q(Q), $w(W), $p(P)]),
+    
+    U = new_ordset(1..N),
+    best_plan_bb({U,0},Plan,Cost),
+    println(Plan),
+    print("cost: "),
+    println(Cost).

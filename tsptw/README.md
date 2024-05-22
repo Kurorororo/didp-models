@@ -56,3 +56,9 @@ python3 tsptw_to_didp.py instance.txt --use-bound --non-zero-base-case -d didp-y
 ```python3
 python3 tsptw_to_didp.py instance.txt --non-zero-base-case -d didp-yaml -c ../configs/cabs.yaml --memory-limit 8192
 ```
+
+### TSPTW-M
+
+```python3
+python3 tsptw_to_didp.py instance.txt --makespan -d didp-yaml -c ../configs/cabs.yaml --memory-limit 8192
+```

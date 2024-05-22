@@ -1,0 +1,64 @@
+import ordset.
+import planner.
+
+final(F), n(N), length(F) == N, => true.
+
+action(F,NState,Action,ActionCost),
+    all(N),
+    U = subtract(N,F),
+    select(I,U,_),
+    p(P),
+    P[I].subset(F),
+?=>
+    Action = I,
+    t(T),
+    C = T[I],
+    foreach (J in F)
+        C := C + T[J]
+    end,
+    d(D),
+    w(W),
+    ActionCost = W[I] * max(0,C - D[I]),
+    NState = F.insert(I).
+
+heuristic(F) = H => H = 0.
+
+main(Args) =>
+    [Filename|_] = Args,
+    Reader = open(Filename),
+    N = read_int(Reader),
+    A = new_ordset(1..N),
+
+    T = new_array(N),
+    D = new_array(N),
+    W = new_array(N),
+    foreach (I in 1..N)
+        T[I] = read_int(Reader),
+        D[I] = read_int(Reader),
+        W[I] = read_int(Reader),
+    end,
+
+    NP = read_int(Reader),
+    R = new_set(NP),
+    foreach (K in 1..NP)
+        I = read_int(Reader),
+        J = read_int(Reader),
+        R.put((I, J))
+    end,
+
+    close(Reader),
+
+    P = new_array(N),
+    foreach (I in 1..N)
+        P[I] = new_ordset([J : J in 1..N, R.has_key((J,I))]),
+    end,
+
+    cl_facts_table([$n(N), $all(A), $t(T), $d(D), $w(W), $p(P)]),
+
+    best_plan_bb([],Plan,Cost),
+
+    println(Plan),
+    print("cost: "),
+    println(Cost).
+
+

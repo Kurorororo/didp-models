@@ -1,0 +1,50 @@
+table(+,-,max,nt)
+dp({[],I,T},Plan,Cost,(_,_,B,C,_)), T + C[I,1] <= B[1], => Plan = [1], Cost = 0.
+dp({U,I,T},Plan,Cost,(P,A,B,C,CStar)),
+    select(J,U,NU),
+    not (T + CStar[I,J] <= B[J], T + CStar[I,J] + CStar[J,1] <= B[1]),
+=>
+    dp({NU,I,T},Plan,Cost,(P,A,B,C,CStar)).
+dp({U,I,T},Plan,Cost,(P,A,B,C,CStar)),
+    select(J,U,NU),
+    NT = max(T + C[I,J], A[J]),
+    NT <= B[J],
+    NT + CStar[J,1] <= B[1],
+?=>
+    dp({NU,J,NT},NPlan,NCost,(P,A,B,C,CStar)),
+    Plan = [J|NPlan],
+    Cost = P[J] + NCost.
+dp({U,I,T},Plan,Cost,(P,A,B,C,CStar)),
+    select(_,U,NU),
+=>
+    dp({NU,I,T},Plan,Cost,(P,A,B,C,CStar)).
+
+main(Args) =>
+    [Filename|_] = Args,
+    Reader = open(Filename),
+    N = read_int(Reader),
+
+    P = new_array(N),
+    A = new_array(N),
+    B = new_array(N),
+    foreach (I in 1..N)
+        P[I] = read_int(Reader),
+        A[I] = read_int(Reader),
+        B[I] = read_int(Reader),
+    end,
+
+    C = new_array(N,N),
+    foreach (I in 1..N, J in 1..N)
+        C[I,J] = read_int(Reader)
+    end,
+
+    CStar = copy_term(C),
+    foreach (K in 1..N-1, I in 1..N, J in 1..N)
+        CStar[I,J] := min(CStar[I,J],CStar[I,K]+CStar[K,J])
+    end,
+
+    dp({2..N,1,0},Plan,Cost,(P,A,B,C,CStar)),
+
+    println(Plan),
+    print("cost: "),
+    println(Cost).

@@ -122,22 +122,29 @@ if __name__ == "__main__":
     parser.add_argument("--memory-limit", default=None, type=int)
     parser.add_argument("--use-bound", action="store_true")
     parser.add_argument("--non-zero-base-case", action="store_true")
+    parser.add_argument("--makespan", action="store_true")
     args = parser.parse_args()
 
     n, nodes, edges, a, b = read_tsptw.read(args.input)
-    dypdl_text = create_didp(n, nodes, edges, a, b, use_bound=args.use_bound)
+    dypdl_text = create_didp(
+        n, nodes, edges, a, b, use_bound=args.use_bound or args.makespan
+    )
 
     with open("problem.yaml", "w") as f:
         f.write(dypdl_text)
 
     domain_file = (
-        "domain_non_zero_base_bound.yaml"
-        if args.non_zero_base_case and args.use_bound
-        else "domain_non_zero_base.yaml"
-        if args.non_zero_base_case
-        else "domain_bound.yaml"
-        if args.use_bound
-        else "domain.yaml"
+        "domain_makespan.yaml"
+        if args.makespan
+        else (
+            "domain_non_zero_base_bound.yaml"
+            if args.non_zero_base_case and args.use_bound
+            else (
+                "domain_non_zero_base.yaml"
+                if args.non_zero_base_case
+                else "domain_bound.yaml" if args.use_bound else "domain.yaml"
+            )
+        )
     )
     domain_path = os.path.join(os.path.dirname(__file__), domain_file)
 
@@ -160,13 +167,15 @@ if __name__ == "__main__":
             if transition["name"] == "return":
                 solution.append(0)
 
-        if args.non_zero_base_case:
+        if args.non_zero_base_case or args.makespan:
             solution.append(0)
 
         print(solution)
         print("cost: {}".format(cost))
 
-        validation_result = read_tsptw.validate(n, edges, a, b, solution, cost)
+        validation_result = read_tsptw.validate(
+            n, edges, a, b, solution, cost, makespan=args.makespan
+        )
 
         if validation_result:
             print("The solution is valid.")

@@ -1,5 +1,5 @@
 (define (domain TSPTW)
-    (:requirements :strips :typing :fluents :negative-preconditions :disjunctive-preconditions)
+    (:requirements :strips :typing :negative-preconditions :fluents)
     (:types
         place - object
         depot - place
@@ -16,7 +16,6 @@
         (ready-time ?c - customer)
         (due-date ?c - customer)
         (travel-cost ?c1 ?c2 - place)
-        (shortest-cost ?c1 ?c2 - place)
         (total-cost)
     )
 
@@ -27,9 +26,6 @@
             (not (visited ?to))
             (<= (+ (time) (travel-cost ?from ?to)) (due-date ?to))
             (>= (+ (time) (travel-cost ?from ?to)) (ready-time ?to))
-            (forall
-                (?c - customer)
-                (or (visited ?c) (<= (+ (time) (shortest-cost ?from ?c)) (due-date ?c))))
         )
         :effect (and
             (not (loc ?from))
@@ -46,16 +42,13 @@
             (loc ?from)
             (not (visited ?to))
             (< (+ (time) (travel-cost ?from ?to)) (ready-time ?to))
-            (forall
-                (?c - customer)
-                (or (visited ?c) (<= (+ (time) (shortest-cost ?from ?c)) (due-date ?c))))
         )
         :effect (and
             (not (loc ?from))
             (loc ?to)
             (visited ?to)
             (assign (time) (ready-time ?to))
-            (increase (total-cost) (shortest-cost ?from ?to))
+            (increase (total-cost) (travel-cost ?from ?to))
         )
     )
 
@@ -63,8 +56,7 @@
         :parameters (?from - customer ?to - depot)
         :precondition (and (loc ?from) (forall
                 (?c - customer)
-                (visited ?c))
-        )
+                (visited ?c)))
         :effect (and
             (not (loc ?from))
             (loc ?to)

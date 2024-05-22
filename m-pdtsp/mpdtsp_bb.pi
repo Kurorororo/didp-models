@@ -1,0 +1,110 @@
+import ordset.
+import planner.
+
+final({[],I,_},Plan,Cost), n(N), a(A), A.has_key((I,N)) =>
+    Plan = [N],
+    c(C),
+    Cost = C[I,N].
+
+action({U,I,L},NState,Action,ActionCost),
+    select(J,U,NU),
+    a(A),
+    A.has_key((I,J)),
+    d(D),
+    q(Q),
+    L + D[J] <= Q,
+    p(P),
+    disjoint(P[I],U),
+?=>
+    Action = J,
+    c(C),
+    ActionCost = C[I,J],
+    NState = {NU,J,L+D[J]}.
+
+heuristic({U,I,_}) = H =>
+    n(N),
+    minto(MinTo),
+    H1 = sum([MinTo[J] : J in U]),
+    if I !== N then
+        H1 := H1 + MinTo[N]
+    end,
+
+    minfrom(MinFrom),
+    H2 = sum([MinFrom[J] : J in U]),
+    if I !== N then
+        H2 := H2 + MinFrom[I]
+    end,
+
+    H = max(H1,H2).
+
+main(Args) =>
+    [Filename|T] = Args,
+    Reader = open(Filename),
+    N = read_int(Reader),
+    Q = read_int(Reader),
+
+    NC = read_int(Reader),
+    C = new_array(N,N),
+    A = new_set(NC),
+    foreach (K in 1..NC)
+        I = read_int(Reader),
+        J = read_int(Reader),
+        V = read_int(Reader),
+        A.put((I,J)),
+        C[I,J] = V,
+    end,
+
+    D = new_array(N),
+    foreach (I in 1..N)
+        D[I] = read_int(Reader),
+    end,
+
+    NP = read_int(Reader),
+    R = new_set(NP),
+    foreach (K in 1..NP)
+        I = read_int(Reader),
+        J = read_int(Reader),
+        R.put((I,J))
+    end,
+
+    close(Reader),
+
+    P = new_array(N),
+    foreach (I in 1..N)
+        P[I] = new_ordset([J : J in 1..N, R.has_key((J,I))]),
+    end,
+
+    Infeasible = false,
+    MinTo = new_array(N),
+    foreach (I in 2..N, break(Infeasible == true))
+        Row = [C[J,I] : J in 1..N-1, A.has_key((J,I))],
+        if length(Row) == 0 then
+            Infeasible := true
+        else
+            MinTo[I] = min(Row)
+        end
+    end,
+
+    MinFrom = new_array(N),
+    foreach (I in 1..N-1, break(Infeasible == true))
+        Row = [C[I,J] : J in 2..N, A.has_key((I,J))],
+        if length(Row) == 0 then
+            Infeasible := true
+        else
+            MinFrom[I] = min(Row)
+        end
+    end,
+
+    if Infeasible then
+        println("infeasible")
+    else
+        cl_facts_table([$q(Q), $n(N), $a(A), $c(C), $d(D), $p(P), $minfrom(MinFrom), $minto(MinTo)]),
+
+        U = new_ordset(2..N-1),
+        best_plan_bb({U,1,0},Plan,Cost),
+
+        println(Plan),
+        print("cost: "),
+        println(Cost)
+    end.
+

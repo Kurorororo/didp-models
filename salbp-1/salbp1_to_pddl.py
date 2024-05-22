@@ -100,10 +100,4 @@ if __name__ == "__main__":
         f.write(problem)
 
     if args.planner_path is not None:
-        subprocess.run(
-            [
-                args.planner_path,
-                "domain.pddl",
-                "problem.pddl",
-            ]
-        )
+        subprocess.run([args.planner_path, "domain.pddl", "problem.pddl", "plan.txt"])

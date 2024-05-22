@@ -1,0 +1,92 @@
+import planner.
+
+final({[],I,_},Plan,Cost) =>
+    Plan = [1],
+    c(C),
+    Cost = C[I,1].
+
+action({U,I,T},NState,Action,ActionCost),
+    select(J,U,NU),
+    b(B),
+    c(C),
+    T + C[I,J] <= B[J],
+    a(A),
+    NT = max(A[J], T + C[I,J]),
+    constraint(NU,J,NT),
+?=>
+    Action = J,
+    ActionCost = C[I,J],
+    NState = {NU,J,NT}.
+
+constraint(U,I,T) =>
+    Result = true,
+    b(B),
+    cstar(CStar),
+    foreach (J in U, break(Result == false))
+        if T + CStar[I,J] > B[J] then
+            Result := false
+        end
+    end,
+    Result.
+
+heuristic({U,I,_}) = H =>
+    minto(MinTo),
+    H1 = sum([MinTo[J] : J in U]),
+    if I !== 1 then
+        H1 := H1 + MinTo[1]
+    end,
+
+    minfrom(MinFrom),
+    H2 = sum([MinFrom[J] : J in U]),
+    if I !== 1 then
+        H2 := H2 + MinFrom[I],
+    end,
+
+    H = max(H1, H2).
+
+main(Args) =>
+    [Filename|T] = Args,
+    Reader = open(Filename),
+    N = read_int(Reader),
+
+    C= new_array(N,N),
+    foreach (I in 1..N)
+        foreach (J in 1..N)
+            C[I,J] = read_int(Reader)
+        end
+    end,
+
+    A = new_array(N),
+    B = new_array(N),
+    foreach (I in 1..N)
+        A[I] = read_int(Reader),
+        B[I] = read_int(Reader),
+    end,
+
+    close(Reader),
+
+    CStar = copy_term(C),
+    foreach(K in 2..N)
+        foreach (I in 1..N)
+            foreach(J in 1..N)
+                CStar[I,J] := min(CStar[I,J],CStar[I,K] + CStar[K,J])
+            end 
+        end
+    end,
+
+    MinTo = new_array(N),
+    foreach (I in 1..N)
+        MinTo[I] = min([C[J,I] : J in 1..N, I !== J])
+    end,
+
+    MinFrom = new_array(N),
+    foreach (I in 1..N)
+        MinFrom[I] = min([C[I,J] : J in 1..N, I !== J])
+    end,
+    cl_facts_table([$c(C), $a(A), $b(B), $cstar(CStar), $minto(MinTo), $minfrom(MinFrom)]),
+
+    best_plan_bb({2..N,1,0},Plan,Cost),
+
+    println(Plan),
+    print("cost: "),
+    println(Cost).

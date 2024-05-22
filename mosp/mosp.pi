@@ -1,0 +1,44 @@
+import ordset.
+
+table(+,-,min,nt)
+dp({[],_},Plan,Cost,_) => Plan = [], Cost = 0.
+dp({Remaining,Opened},Plan,Cost,Neighbors) =>
+    select(C,Remaining,NRemaining),
+    Cost1 = length(Opened.intersection(Remaining).union(Neighbors[C].subtract(Opened))),
+    NOpened = Opened.union(Neighbors[C]),
+    dp({NRemaining,NOpened},NPlan,NCost,Neighbors),
+    Cost = max(Cost1, NCost),
+    Plan = [C|NPlan].
+
+main(Args) =>
+    [Filename|T] = Args,
+    Reader = open(Filename),
+    N = read_int(Reader),
+    M = read_int(Reader),
+
+    ItemToPatterns = {[] : _ in 1..M},
+    PatternToItems = {[] : _ in 1..N},
+    foreach (J in 1..N)
+        foreach (I in 1..M)
+            Cell = read_int(Reader),
+            if Cell == 1 then
+                ItemToPatterns[I] := [J|ItemToPatterns[I]],
+                PatternToItems[J] := [I|PatternToItems[J]]
+            end
+        end
+    end,
+
+    close(Reader),
+
+    Neighbors = new_array(M),
+    foreach (I in 1..M)
+        Neighbors[I] = new_ordset([I|[K : J in ItemToPatterns[I], K in PatternToItems[J]]])
+    end,
+
+    Remaining = new_ordset(1..M),
+    Opened = new_ordset([]),
+    dp({Remaining,Opened},Plan,Cost,Neighbors),
+
+    println(Plan),
+    print("cost: "),
+    println(Cost).
