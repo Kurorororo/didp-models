@@ -1,6 +1,10 @@
 # MOSP
 
-- [Benchmark instances](https://www.researchgate.net/publication/267864061_Minimization_of_Open_Stacks_Problem_MOSP_or_Minimization_of_Open_Orders_Problem_MOOP_Instances)
+- Benchmark instances
+  - https://doi.org/10.1371/journal.pone.0203076.s002
+  - Large instances used in Kuroiwa and Beck 2023 LNBS
+    - https://www.researchgate.net/publication/267864061_Minimization_of_Open_Stacks_Problem_MOSP_or_Minimization_of_Open_Orders_Problem_MOOP_Instances
+    - https://www.researchgate.net/publication/324497787_Large_datasets_for_the_MOSP
 
 ```python3
 python3 mosp_mip.py instance.txt --history history.csv --time-out 1800
