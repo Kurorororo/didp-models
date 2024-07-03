@@ -1,0 +1,108 @@
+objects:
+  - node
+state_variables:
+  - name: unvisited
+    type: set
+    object: node
+  - name: location
+    type: element
+    object: node
+  - name: time
+    type: integer
+    preference: less
+tables:
+  - name: opening
+    type: integer
+    args:
+      - node
+  - name: profit
+    type: integer
+    args:
+      - node
+  - name: closing
+    type: integer
+    args:
+      - node
+  - name: distance
+    type: integer
+    args:
+      - node
+      - node
+    default: 0
+  - name: shortest_distance
+    type: integer
+    args:
+      - node
+      - node
+    default: 0
+  - name: shortest_return_distance
+    type: integer
+    args:
+      - node
+      - node
+    default: 0
+  - name: distance_plus_shortest_return
+    type: integer
+    args:
+      - node
+      - node
+  - name: min_distance_from
+    type: continuous
+    args:
+      - node
+  - name: min_distance_to
+    type: continuous
+    args:
+      - node
+  - name: efficiency_from
+    type: continuous
+    args:
+      - node
+  - name: efficiency_to
+    type: continuous
+    args:
+      - node
+base_cases:
+  - - (is_empty unvisited)
+    - (<= (+ time (distance location 0)) (closing 0))
+reduce: max
+cost_type: integer
+transitions:
+  - name: remove
+    parameters:
+      - name: to
+        object: unvisited
+    preconditions:
+      - >
+        (or (> (+ time (shortest_distance location to)) (closing to))
+            (> (+ time (shortest_return_distance location to)) (closing 0)))
+    effect:
+      unvisited: (remove to unvisited)
+    cost: cost
+    forced: true
+  - name: clear
+    parameters:
+      - name: to
+        object: unvisited
+    preconditions:
+      - condition: (or (> (+ time (distance location via)) (closing via))
+                       (> (+ time (distance_plus_shortest_return location via)) (closing 0)))
+        forall:
+          - name: via
+            object: unvisited
+    effect:
+      unvisited: (remove to unvisited)
+    cost: cost
+    forced: true
+  - name: visit
+    parameters:
+      - name: to
+        object: unvisited
+    preconditions:
+      - (<= (+ time (distance location to)) (closing to))
+      - (<= (+ time (distance_plus_shortest_return location to)) (closing 0))
+    effect:
+      unvisited: (remove to unvisited)
+      location: to
+      time: (max (+ time (distance location to)) (opening to))
+    cost: (+ cost (profit to))
