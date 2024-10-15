@@ -9,3 +9,7 @@ This repository stores DyPDL, MIP, and CP models used in the following papers.
 - Journal submission
 
 In addition, PDDL models for some problems and Picat models are provided.
+
+## More Models
+
+The discrete-optimization repository maintained by airbus also implement DP models for multiple problems using DIDPPy: https://github.com/airbus/discrete-optimization
