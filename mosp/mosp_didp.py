@@ -119,6 +119,7 @@ def solve(
 
         solver = dp.CABS(
             model,
+            f_operator=dp.FOperator.Max,
             initial_beam_size=initial_beam_size,
             threads=threads,
             parallelization_method=parallelization_method,
