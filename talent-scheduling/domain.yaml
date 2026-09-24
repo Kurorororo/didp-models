@@ -48,7 +48,6 @@ transition_dominance:
           object: scene
     conditions:
       - (is_in t (subsumption_candidates s))
-      - (or (< t s) (not (is_in s (subsumption_candidates t))))
       - (is_subset (players t) (union came (players s)))
 base_cases:
   - - (is_empty remaining)

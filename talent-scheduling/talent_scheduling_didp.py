@@ -76,9 +76,6 @@ def create_model(actor_to_scenes, actor_to_cost, scene_to_duration, base_cost):
 
     for s in scene_list:
         for t in subsumption_candidates[s]:
-            # Equal actor sets are interchangeable: orient ties by scene id.
-            if s in subsumption_candidates[t] and t > s:
-                continue
             model.add_transition_dominance(
                 transition_ids[t],
                 transition_ids[s],
