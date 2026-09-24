@@ -99,6 +99,7 @@ def solve(
     elif solver_name == "LNBS":
         solver = dp.LNBS(
             model,
+            f_operator=dp.FOperator.Max,
             initial_beam_size=initial_beam_size,
             threads=threads,
             seed=seed,
