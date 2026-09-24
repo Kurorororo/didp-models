@@ -46,10 +46,10 @@ def validate(item_to_patterns, pattern_to_items, solution, cost):
     open = set()
     for i in solution:
         if i < 0 or i > len(pattern_to_items) - 1:
-            print("Pattern {} does not exist".format(i))
+            print(f"Pattern {i} does not exist")
             return False
         if i in produced:
-            print("Pattern {} is already produced".format(i))
+            print(f"Pattern {i} is already produced")
             return False
 
         produced.add(i)
@@ -66,17 +66,13 @@ def validate(item_to_patterns, pattern_to_items, solution, cost):
 
     if len(produced) != len(pattern_to_items):
         print(
-            "The number of produced patterns is {}, but should be {}".format(
-                len(produced), len(pattern_to_items)
-            )
+            f"The number of produced patterns is {len(produced)}, but should be {len(pattern_to_items)}"
         )
         return False
 
     if cost != actual_cost:
         print(
-            "The cost of the solution {} mismatches the actual cost {}".format(
-                cost, actual_cost
-            )
+            f"The cost of the solution {cost} mismatches the actual cost {actual_cost}"
         )
         return False
 

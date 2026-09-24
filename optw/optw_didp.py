@@ -45,155 +45,142 @@ def create_model(
     epsilon=1e-6,
     blind=False,
 ):
+    """Maximize collected profit with reachability filtering and knapsack bounds.
+
+    Time denotes the start of service. Shortest times include service at the
+    origin, keeping filters sound even for rounded, nonmetric travel times.
+    """
+    if not math.isfinite(epsilon) or epsilon < 0:
+        raise ValueError("epsilon must be finite and nonnegative")
     model = dp.Model(maximize=True)
-
-    node = model.add_object_type(number=len(vertices))
-    unvisited = model.add_set_var(object_type=node, target=vertices[1:])
-    location = model.add_element_var(object_type=node, target=0)
-    time = model.add_int_resource_var(target=0, less_is_better=True)
-
-    distance_matrix = [
-        [service_time[i] + distance[i][j] for j in vertices] for i in vertices
+    goal = len(vertices)
+    node = model.add_object_type(number=goal + 1)
+    travel = [[service_time[i] + distance[i][j] for j in vertices] for i in vertices]
+    shortest = compute_shortest_distance(distance, service_time)
+    initial_time = max(0, opening[0])
+    initially_reachable = [
+        i
+        for i in vertices[1:]
+        if max(initial_time + shortest[0][i], opening[i])
+        <= min(closing[i], closing[0] - shortest[i][0])
     ]
-    distance_table = model.add_int_table(distance_matrix)
-
-    shortest_distance = compute_shortest_distance(distance, service_time)
-    shortest_distance_table = model.add_int_table(shortest_distance)
-
-    shortest_return_distance = [
-        [shortest_distance[i][j] + shortest_distance[j][0] for j in vertices]
-        for i in vertices
-    ]
-    shortest_return_distance_table = model.add_int_table(shortest_return_distance)
-    distance_plus_shortest_return_table = model.add_int_table(
-        [
-            [distance_matrix[i][j] + shortest_distance[j][0] for j in vertices]
-            for i in vertices
-        ]
+    reachable = model.add_set_resource_var(
+        object_type=node,
+        target=initially_reachable,
+        less_is_better=False,
+        name="reachable",
     )
-
-    model.add_base_case(
-        [unvisited.is_empty(), time + distance_table[location, 0] <= closing[0]]
+    location = model.add_element_var(object_type=node, target=0, name="location")
+    current_time = model.add_int_resource_var(
+        target=initial_time, less_is_better=True, name="time"
     )
-
+    travel_table = model.add_int_table(travel + [[0] * goal])
+    shortest_table = model.add_int_table(shortest + [[0] * goal])
+    opening_table = model.add_int_table(opening)
+    closing_table = model.add_int_table(closing)
+    return_table = model.add_int_table([shortest[i][0] for i in vertices])
+    model.add_state_constr(current_time <= closing[0])
+    model.add_base_case([location == goal])
+    k = model.add_local_var()
+    names = {}
     for i in vertices[1:]:
-        name = "remove {}".format(i)
-        remove = dp.Transition(
-            name=name,
-            cost=dp.IntExpr.state_cost(),
-            effects=[(unvisited, unvisited.remove(i))],
-            preconditions=[
-                unvisited.contains(i),
-                (time + shortest_distance_table[location, i] > closing[i])
-                | (time + shortest_return_distance_table[location, i] > closing[0]),
-            ],
+        name = f"visit {i}"
+        names[name] = i
+        time_next = model.add_int_state_fun(
+            dp.max(current_time + travel_table[location, i], opening[i])
         )
-        model.add_transition(remove, forced=True)
-
-    for i in vertices[1:]:
-        name = "clear {}".format(i)
-        clear = dp.Transition(
-            name=name,
-            cost=dp.IntExpr.state_cost(),
-            effects=[(unvisited, unvisited.remove(i))],
-            preconditions=[unvisited.contains(i)]
-            + [
-                ~unvisited.contains(j)
-                | (time + distance_table[location, j] > closing[j])
-                | (time + distance_plus_shortest_return_table[location, j] > closing[0])
-                for j in vertices[1:]
-            ],
+        earliest = dp.max(time_next + shortest_table[i, k], opening_table[k])
+        model.add_transition(
+            dp.Transition(
+                name=name,
+                cost=profit[i] + dp.IntExpr.state_cost(),
+                effects=[
+                    (location, i),
+                    (current_time, time_next),
+                    (
+                        reachable,
+                        reachable.remove(i).filter(
+                            k,
+                            (earliest <= closing_table[k])
+                            & (earliest + return_table[k] <= closing[0]),
+                        ),
+                    ),
+                ],
+                preconditions=[
+                    location != goal,
+                    reachable.contains(i),
+                    time_next <= closing[i],
+                    time_next + shortest[i][0] <= closing[0],
+                ],
+            )
         )
-        model.add_transition(clear, forced=True)
-
-    name_to_node = {}
-
-    for i in vertices[1:]:
-        name = "visit {}".format(i)
-        name_to_node[name] = i
-        set_effect = unvisited.remove(i)
-
-        visit = dp.Transition(
-            name=name,
-            cost=profit[i] + dp.IntExpr.state_cost(),
+    # Stopping is optional in OPTW. Returning collects no profit, so this
+    # transition naturally has zero objective cost (unlike distance objectives).
+    model.add_transition(
+        dp.Transition(
+            name="finish",
+            cost=dp.IntExpr.state_cost(),
             effects=[
-                (unvisited, set_effect),
-                (location, i),
-                (time, dp.max(time + distance_table[location, i], opening[i])),
+                (location, goal),
+                (current_time, current_time + travel_table[location, 0]),
+                (reachable, model.create_set_const(object_type=node, value=[])),
             ],
             preconditions=[
-                unvisited.contains(i),
-                time + distance_table[location, i] <= closing[i],
-                time + distance_plus_shortest_return_table[location, i] <= closing[0],
+                location != goal,
+                current_time + travel_table[location, 0] <= closing[0],
             ],
         )
-        model.add_transition(visit)
-
+    )
     if not blind:
-        model.add_dual_bound(
-            sum(
-                (
-                    unvisited.contains(i)
-                    & (time + shortest_distance_table[location, i] <= closing[i])
-                    & (time + shortest_return_distance_table[location, i] <= closing[0])
-                ).if_then_else(profit[i], 0)
-                for i in vertices[1:]
-            )
-        )
-
-        min_distance_from = [
-            min(distance_matrix[i][j] for j in vertices if i != j) for i in vertices
+        rewards = model.add_int_table([max(0, p) for p in profit])
+        min_from = [
+            min((travel[i][j] for j in vertices if j != i), default=0) for i in vertices
         ]
-        min_distance_from_table = model.add_int_table(min_distance_from)
-        efficiency_from = [p / c + epsilon for p, c in zip(profit, min_distance_from)]
-
-        max_efficiency_from = None
-
-        for i in vertices[1:]:
-            efficiency_i = (
-                unvisited.contains(i)
-                & (time + shortest_distance_table[location, i] <= closing[i])
-                & (time + shortest_return_distance_table[location, i] <= closing[0])
-            ).if_then_else(efficiency_from[i], 0)
-
-            if max_efficiency_from is None:
-                max_efficiency_from = efficiency_i
-            else:
-                max_efficiency_from = dp.max(max_efficiency_from, efficiency_i)
-
-        model.add_dual_bound(
-            math.floor(
-                (closing[0] - time - min_distance_from_table[location])
-                * max_efficiency_from
-            )
-        )
-
-        min_distance_to = [
-            min(distance_matrix[i][j] for i in vertices if i != j) for j in vertices
+        min_to = [
+            min((travel[i][j] for i in vertices if i != j), default=0) for j in vertices
         ]
-        efficiency_to = model.add_float_table(
-            [profit[i] / min_distance_to[i] + epsilon for i in vertices]
+        from_table = model.add_int_table(min_from + [0])
+        for weights, capacity in [
+            (min_from, closing[0] - current_time - from_table[location]),
+            (min_to, closing[0] - current_time - min_to[0]),
+        ]:
+            weights_table = model.add_int_table(weights)
+            bound = dp.fractional_knapsack(
+                reachable, dp.max(capacity, 0), rewards, weights_table
+            )
+            model.add_dual_bound(
+                (location == goal).if_then_else(0, math.floor(bound + epsilon))
+            )
+    return model, names
+
+
+def create_solver(
+    model,
+    solver_name,
+    time_limit=None,
+    seed=2023,
+    initial_beam_size=1,
+    threads=1,
+):
+    options = dict(time_limit=time_limit, quiet=False)
+    if solver_name == "CAASDy":
+        solver = dp.CAASDy(model, **options)
+    elif solver_name == "CABS":
+        solver = dp.CABS(
+            model, initial_beam_size=initial_beam_size, threads=threads, **options
         )
-
-        max_efficiency_to = None
-
-        for i in vertices[1:]:
-            efficiency_i = (
-                unvisited.contains(i)
-                & (time + shortest_distance_table[location, i] <= closing[i])
-                & (time + shortest_return_distance_table[location, i] <= closing[0])
-            ).if_then_else(efficiency_to[i], 0)
-
-            if max_efficiency_to is None:
-                max_efficiency_to = efficiency_i
-            else:
-                max_efficiency_to = dp.max(max_efficiency_to, efficiency_i)
-
-        model.add_dual_bound(
-            math.floor((closing[0] - time - min_distance_to[0]) * max_efficiency_to)
+    elif solver_name == "LNBS":
+        solver = dp.LNBS(
+            model,
+            initial_beam_size=initial_beam_size,
+            threads=threads,
+            seed=seed,
+            **options,
         )
+    else:
+        raise ValueError(f"Unknown solver: {solver_name}")
 
-    return model, name_to_node
+    return solver
 
 
 def solve(
@@ -205,78 +192,33 @@ def solve(
     seed=2023,
     initial_beam_size=1,
     threads=1,
-    parallel_type=0,
 ):
-    if solver_name == "LNBS":
-        if parallel_type == 2:
-            parallelization_method = dp.BeamParallelizationMethod.Sbs
-        elif parallel_type == 1:
-            parallelization_method = dp.BeamParallelizationMethod.Hdbs1
+    solver = create_solver(
+        model,
+        solver_name,
+        time_limit=time_limit,
+        seed=seed,
+        initial_beam_size=initial_beam_size,
+        threads=threads,
+    )
+
+    with open(history, "w") as f:
+        is_terminated = False
+
+        while not is_terminated:
+            solution, is_terminated = solver.search_next()
+
+            if solution.cost is not None:
+                f.write(f"{time.perf_counter() - start}, {solution.cost}\n")
+                f.flush()
+
+    print(f"Search time: {solution.time}s")
+
+    if solution.cost is None:
+        if solution.is_infeasible:
+            print("The problem is infeasible")
         else:
-            parallelization_method = dp.BeamParallelizationMethod.Hdbs2
-
-        solver = dp.LNBS(
-            model,
-            time_limit=time_limit,
-            quiet=False,
-            seed=seed,
-            parallelization_method=parallelization_method,
-            threads=threads,
-        )
-    elif solver_name == "DD-LNS":
-        solver = dp.DDLNS(model, time_limit=time_limit, quiet=False, seed=seed)
-    elif solver_name == "FR":
-        solver = dp.ForwardRecursion(model, time_limit=time_limit, quiet=False)
-    elif solver_name == "BrFS":
-        solver = dp.BreadthFirstSearch(model, time_limit=time_limit, quiet=False)
-    elif solver_name == "CAASDy":
-        solver = dp.CAASDy(model, time_limit=time_limit, quiet=False)
-    elif solver_name == "DFBB":
-        solver = dp.DFBB(model, time_limit=time_limit, quiet=False)
-    elif solver_name == "CBFS":
-        solver = dp.CBFS(model, time_limit=time_limit, quiet=False)
-    elif solver_name == "ACPS":
-        solver = dp.ACPS(model, time_limit=time_limit, quiet=False)
-    elif solver_name == "APPS":
-        solver = dp.APPS(model, time_limit=time_limit, quiet=False)
-    elif solver_name == "DBDFS":
-        solver = dp.DBDFS(model, time_limit=time_limit, quiet=False)
-    else:
-        if parallel_type == 2:
-            parallelization_method = dp.BeamParallelizationMethod.Sbs
-        elif parallel_type == 1:
-            parallelization_method = dp.BeamParallelizationMethod.Hdbs1
-        else:
-            parallelization_method = dp.BeamParallelizationMethod.Hdbs2
-
-        solver = dp.CABS(
-            model,
-            initial_beam_size=initial_beam_size,
-            threads=threads,
-            parallelization_method=parallelization_method,
-            time_limit=time_limit,
-            quiet=False,
-        )
-
-    if solver_name == "FR":
-        solution = solver.search()
-    else:
-        with open(history, "w") as f:
-            is_terminated = False
-
-            while not is_terminated:
-                solution, is_terminated = solver.search_next()
-
-                if solution.cost is not None:
-                    f.write(
-                        "{}, {}\n".format(time.perf_counter() - start, solution.cost)
-                    )
-                    f.flush()
-
-    print("Search time: {}s".format(solution.time))
-
-    if solution.is_infeasible:
-        print("The problem is infeasible")
+            print("No solution found within the time limit")
 
         return None, None
     else:
@@ -290,14 +232,13 @@ def solve(
 
         print(" ".join(map(str, tour[1:-1])))
 
-        print("Search time: {}s".format(solution.time))
-        print("Expanded: {}".format(solution.expanded))
-        print("Generated: {}".format(solution.generated))
-        print("cost: {}".format(solution.cost))
-        print("best bound: {}".format(solution.best_bound))
+        print(f"Expanded: {solution.expanded}")
+        print(f"Generated: {solution.generated}")
+        print(f"cost: {solution.cost}")
+        print(f"best bound: {solution.best_bound}")
 
         if solution.is_optimal:
-            print("optimal cost: {}".format(solution.cost))
+            print(f"optimal cost: {solution.cost}")
 
         return tour, solution.cost
 
@@ -307,11 +248,10 @@ if __name__ == "__main__":
     parser.add_argument("input", type=str)
     parser.add_argument("--time-out", default=1800, type=int)
     parser.add_argument("--history", default="history.csv", type=str)
-    parser.add_argument("--config", default="CABS", type=str)
+    parser.add_argument("--config", choices=["CAASDy", "CABS", "LNBS"], default="CABS")
     parser.add_argument("--seed", default=2023, type=int)
     parser.add_argument("--threads", default=1, type=int)
     parser.add_argument("--initial-beam-size", default=1, type=int)
-    parser.add_argument("--parallel-type", default=0, type=int)
     parser.add_argument("--round-to-second", action="store_true")
     parser.add_argument("--epsilon", type=float, default=1e-6)
     parser.add_argument("--blind", action="store_true")
@@ -350,12 +290,11 @@ if __name__ == "__main__":
         seed=args.seed,
         threads=args.threads,
         initial_beam_size=args.initial_beam_size,
-        parallel_type=args.parallel_type,
     )
 
     if cost is not None and read_optw.validate_optw(
         service_time, profit, opening, closing, distance, tour, cost
     ):
         print("The solution is valid.")
-    else:
+    elif cost is not None:
         print("The solution is invalid.")

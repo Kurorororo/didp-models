@@ -1,69 +1,73 @@
-domain: CVRP
 objects:
-    - customer
+- customer
 state_variables:
-    - name: unvisited
-      type: set
-      object: customer
-    - name: location
-      type: element
-      object: customer
-    - name: load
-      type: integer
-      preference: less
-    - name: vehicles
-      type: integer
-      preference: less
+- name: unvisited
+  type: set
+  object: customer
+- name: location
+  type: element
+  object: customer
+- name: load
+  type: integer
+  preference: less
+- name: vehicles
+  type: integer
+  preference: less
 tables:
-    - name: max_vehicles
-      type: integer
-    - name: capacity
-      type: integer
-    - name: demand
-      type: integer
-      args:
-          - customer
-    - name: distance
-      type: integer
-      args:
-          - customer
-          - customer
-      default: 0
+- name: max_vehicles
+  type: integer
+- name: capacity
+  type: integer
+- name: demand
+  type: integer
+  args:
+  - customer
+- name: distance
+  type: integer
+  args:
+  - customer
+  - customer
+  default: 0
+- name: mst_distance
+  type: integer
+  args:
+  - customer
+  - customer
+- name: min_return
+  type: integer
 base_cases:
-    - - (is_empty unvisited)
-      - (= location 0)
+- conditions:
+  - (is_empty unvisited)
+  cost: (distance location 0)
+constraints:
+- condition: "(>= (+ (* (- max_vehicles vehicles) capacity) capacity)\n    (+ load (sum demand unvisited)))\n"
 reduce: min
 cost_type: integer
 transitions:
-    - name: visit
-      parameters:
-          - name: to
-            object: unvisited
-      preconditions:
-          - (<= (+ load (demand to)) capacity)
-      effect:
-          unvisited: (remove to unvisited)
-          location: to
-          load: (+ load (demand to))
-      cost: (+ cost (distance location to))
-    - name: visit-via-depot
-      parameters:
-          - name: to
-            object: unvisited
-      preconditions:
-          - (< vehicles max_vehicles)
-      effect:
-          unvisited: (remove to unvisited)
-          location: to
-          load: (demand to)
-          vehicles: (+ vehicles 1)
-      cost: (+ cost (+ (distance location 0) (distance 0 to)))
-    - name: return
-      preconditions:
-          - (is_empty unvisited)
-          - (!= location 0)
-      effect:
-          location: 0
-      cost: (+ cost (distance location 0))
+- name: visit
+  parameters:
+  - name: to
+    object: unvisited
+  preconditions:
+  - (<= (+ load (demand to)) capacity)
+  effect:
+    unvisited: (remove to unvisited)
+    location: to
+    load: (+ load (demand to))
+  cost: (+ cost (distance location to))
+- name: visit-via-depot
+  parameters:
+  - name: to
+    object: unvisited
+  preconditions:
+  - (< vehicles max_vehicles)
+  - (<= (demand to) capacity)
+  effect:
+    unvisited: (remove to unvisited)
+    location: to
+    load: (demand to)
+    vehicles: (+ vehicles 1)
+  cost: (+ cost (+ (distance location 0) (distance 0 to)))
 dual_bounds:
-    - 0
+- (if (is_empty unvisited) (distance location 0) (+ (minimum_spanning_tree (add location unvisited) mst_distance)
+  min_return))

@@ -19,10 +19,10 @@ def validate(n, node_weights, edge_weights, solution, cost):
 
     for i in solution:
         if i < 0 or i > n - 1:
-            print("Node {} does not exist".format(i))
+            print(f"Node {i} does not exist")
             return False
         if i in clean:
-            print("{} is already clean".format(i))
+            print(f"{i} is already clean")
             return False
 
         n_robots = node_weights[i]
@@ -44,15 +44,11 @@ def validate(n, node_weights, edge_weights, solution, cost):
         clean.add(i)
 
     if len(clean) != n:
-        print("The number of swept nodes is {}, but should be {}".format(len(clean), n))
+        print(f"The number of swept nodes is {len(clean)}, but should be {n}")
         return False
 
     if actual_cost != cost:
-        print(
-            "The cost of solution {} mismatches the actual cost {}".format(
-                cost, actual_cost
-            )
-        )
+        print(f"The cost of solution {cost} mismatches the actual cost {actual_cost}")
         return False
 
     return True

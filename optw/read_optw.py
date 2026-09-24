@@ -62,13 +62,20 @@ def round_to_second(service_time, opening, closing, distance):
 
 
 def validate_optw(service_time, profit, opening, closing, distance, solution, cost):
+    if not solution or len(solution) < 2 or solution[0] != 0 or solution[-1] != 0:
+        print("The tour must start and end at the depot.")
+        return False
+    customers = solution[1:-1]
+    if 0 in customers or len(set(customers)) != len(customers):
+        print("The tour visits a customer more than once or revisits the depot.")
+        return False
     t = 0
     reward = 0
     previous = None
 
     for i in solution:
         if i < 0 or i >= len(service_time):
-            print("Node {} does not exist.".format(i))
+            print(f"Node {i} does not exist.")
             return False
 
         if previous is not None:
@@ -78,23 +85,16 @@ def validate_optw(service_time, profit, opening, closing, distance, solution, co
             t = opening[i]
 
         if t > closing[i]:
-            print(
-                "The time {} exceeds the closing time {} at node {}.".format(
-                    t, closing[i], i
-                )
-            )
+            print(f"The time {t} exceeds the closing time {closing[i]} at node {i}.")
             return False
 
-        reward += profit[i]
+        if i != 0:
+            reward += profit[i]
         t += service_time[i]
         previous = i
 
-    if solution[-1] != 0:
-        print(
-            "The tour does not return to the depot but ends at node {}.".format(
-                solution[-1]
-            )
-        )
+    if reward != cost:
+        print(f"The collected profit {reward} differs from the cost {cost}.")
         return False
 
     return True

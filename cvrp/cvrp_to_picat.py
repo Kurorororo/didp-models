@@ -85,4 +85,4 @@ if __name__ == "__main__":
         )
 
     end = time.perf_counter()
-    print("Execution time: {}s".format(end - start))
+    print(f"Execution time: {end - start}s")

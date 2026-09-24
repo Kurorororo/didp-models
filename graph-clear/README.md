@@ -21,31 +21,28 @@ python3 graph_clear_cp.py instance.txt --history history.csv --time-out 1800
 python3 graph_clear_cp.py instance.txt --use-s --history history.csv --time-out 1800
 ```
 
-## Kuroiwa and Beck 2023 CAASDy, Anytime, and Journal Submission
+## DIDPPy v0.11.1
 
-```python3
-python3 graph_clear_to_didp.py instance.txt -d didp-yaml -c ../configs/caasdy.yaml --memory-limit 8192
+Run from this directory with DIDPPy 0.11.1 installed (see the [root README](../README.md)).
+
+```sh
+python graph_clear_didp.py instance.txt --config CABS --time-out 1800 --history history.csv
 ```
 
-- `-d`: didp-yaml binary
-- `-c`: config YAML file
+`--config` accepts `CAASDy`, `CABS`, or `LNBS`. `--threads` and
+`--initial-beam-size` configure CABS/LNBS; parallel search uses the default HD2
+method. `--seed` controls LNBS randomization.
 
-## Kuroiwa and Beck 2023 LNBS
+## YAML-DyPDL
 
-```python3
-python3 graph_clear_didp.py instance.txt --config LNBS --history history.csv --time-out 1800
+```sh
+python graph_clear_to_didp.py instance.txt -d didp-yaml -c ../configs/cabs_max.yaml --memory-limit 8192
 ```
 
-- `--config`: Solver name
+Use `../configs/caasdy_max.yaml` or `../configs/lnbs_max.yaml` to change the solver.
+These configurations use the maximum-cost aggregation operator.
+Omit `-d` to write the problem without solving it.
 
-## Kuroiwa and Beck 2024 Parallel
-
-```python3
-python3 graph_clear_didp.py instance.txt --config CABS --initial-beam-size 32 --threads 4 --parallel-type 0 --history history.csv --time-out 300
-```
-
-- `--threads`: Number of threads
-- `--parallel-type`
-  - `0`: HDBS2
-  - `1`: HDBS1
-  - `2`: SBS
+Both formulations cache contaminated vertices and incident edge sums and use
+conditional transition dominance between sweeps. The objective remains the
+maximum number of robots needed during a sweep.

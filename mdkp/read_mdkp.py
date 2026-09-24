@@ -22,9 +22,7 @@ def validate_mdkp(m, profit, weight, capacity, solution, cost):
 
         if total_weight > capacity[i]:
             print(
-                "Total weight {} exceeds capacity {} for dimension {}.".format(
-                    total_weight, capacity[i], i
-                )
+                f"Total weight {total_weight} exceeds capacity {capacity[i]} for dimension {i}."
             )
             return False
 
@@ -32,9 +30,7 @@ def validate_mdkp(m, profit, weight, capacity, solution, cost):
 
     if total_profit != cost:
         print(
-            "Total profit {} is different from the solution cost {}.".format(
-                total_profit, cost
-            )
+            f"Total profit {total_profit} is different from the solution cost {cost}."
         )
 
         return False

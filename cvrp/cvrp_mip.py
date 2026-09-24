@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
 
 import argparse
-import re
 import math
 import os
+import re
 import time
 
 import gurobipy as gp
-
 import read_tsplib
-
 
 start = time.perf_counter()
 
@@ -18,10 +16,7 @@ def get_callback(file):
     def dump_solution(model, where):
         if where == gp.GRB.Callback.MIPSOL:
             file.write(
-                "{}, {}\n".format(
-                    time.perf_counter() - start,
-                    model.cbGet(gp.GRB.Callback.MIPSOL_OBJ),
-                )
+                f"{time.perf_counter() - start}, {model.cbGet(gp.GRB.Callback.MIPSOL_OBJ)}\n"
             )
 
     return dump_solution
@@ -97,20 +92,20 @@ def solve_asymmetric(
                 text = str(depot)
                 current = i
                 while current != depot:
-                    text += " -> {}".format(current)
+                    text += f" -> {current}"
                     for j in nodes:
                         if (current, j) in edges and x[current, j].X > 0.5:
                             current = j
                             break
-                text += " -> {}".format(depot)
+                text += f" -> {depot}"
                 print(text)
-        print("cost: {}".format(model.objVal))
+        print(f"cost: {model.objVal}")
 
         if status == gp.GRB.OPTIMAL:
-            print("optimal cost: {}".format(model.objVal))
+            print(f"optimal cost: {model.objVal}")
         else:
-            print("gap: {}".format(model.getAttr("MIPGap")))
-            print("best bound: {}".format(model.getAttr("ObjBound")))
+            print(f"gap: {model.getAttr('MIPGap')}")
+            print(f"best bound: {model.getAttr('ObjBound')}")
 
 
 def solve_symmetric(
@@ -246,13 +241,13 @@ def solve_symmetric(
         )
         if validation_result:
             print("The solution is valid.")
-            print("cost: {}".format(cost))
+            print(f"cost: {cost}")
 
             if status == gp.GRB.OPTIMAL:
-                print("optimal cost: {}".format(model.objVal))
+                print(f"optimal cost: {model.objVal}")
             else:
-                print("gap: {}".format(model.getAttr("MIPGap")))
-                print("bound: {}".format(model.getAttr("ObjBound")))
+                print(f"gap: {model.getAttr('MIPGap')}")
+                print(f"bound: {model.getAttr('ObjBound')}")
         else:
             print("The solution is invalid.")
 

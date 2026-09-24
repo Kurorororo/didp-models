@@ -33,6 +33,10 @@ tables:
     args:
       - item
     default: 0.0
+state_functions:
+  - name: no_available_item
+    type: bool
+    expression: (all x unpacked (> (weight x) residual))
 base_cases:
   - - (is_empty unpacked)
 reduce: min
@@ -56,10 +60,7 @@ transitions:
         object: unpacked
     preconditions:
       - (>= i bin-number)
-      - forall:
-          - name: j
-            object: unpacked
-        condition: (> (weight j) residual)
+      - no_available_item
     effect:
       unpacked: (remove i unpacked)
       residual: (- capacity (weight i))
@@ -67,5 +68,6 @@ transitions:
     cost: (+ cost 1)
 dual_bounds:
   - (ceil (/ (- (sum weight unpacked) residual) capacity))
-  - (- (+ (sum lb2-weight1 unpacked) (ceil (sum lb2-weight2 unpacked))) (if (>= residual (/ capacity 2.0)) 1 0))
+  - (- (+ (sum lb2-weight1 unpacked) (ceil (sum lb2-weight2 unpacked))) (if (>= residual (/ capacity 2.0))
+    1 0))
   - (- (ceil (sum lb3-weight unpacked)) (if (>= residual (/ capacity 3.0)) 1 0))

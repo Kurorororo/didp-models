@@ -37,17 +37,13 @@ def continuous_lb(c, weights):
 
 def validate(n, c, weights, solution, cost):
     if cost != len(solution):
-        print(
-            "The cost of solution {} mismatches the actual cost {}".format(
-                cost, len(solution)
-            )
-        )
+        print(f"The cost of solution {cost} mismatches the actual cost {len(solution)}")
     packed = {}
-    for (bin, items) in enumerate(solution):
+    for bin, items in enumerate(solution):
         weight_sum = 0
         for i in items:
             if i < 0 or i > n - 1:
-                print("item {} does not exist".format(i))
+                print(f"item {i} does not exist")
             if i in packed:
                 print(
                     "item {} in bin {} is already scheduled in bin {}",
@@ -59,14 +55,10 @@ def validate(n, c, weights, solution, cost):
             packed[i] = bin
             weight_sum += weights[i]
         if weight_sum > c:
-            print(
-                "The sum of weight in bin {} exceeds the capacity of {}".format(bin, c)
-            )
+            print(f"The sum of weight in bin {bin} exceeds the capacity of {c}")
             return False
 
     if len(packed) != n:
-        print(
-            "The number of packed items is {}, but should be {}".format(len(packed), n)
-        )
+        print(f"The number of packed items is {len(packed)}, but should be {n}")
 
     return True

@@ -4,9 +4,7 @@ import argparse
 import time
 
 import gurobipy as gp
-
 import read_single_machine_scheduling
-
 
 start = time.perf_counter()
 
@@ -15,10 +13,7 @@ def get_callback(file):
     def dump_solution(model, where):
         if where == gp.GRB.Callback.MIPSOL:
             file.write(
-                "{}, {}\n".format(
-                    time.perf_counter() - start,
-                    model.cbGet(gp.GRB.Callback.MIPSOL_OBJ),
-                )
+                f"{time.perf_counter() - start}, {model.cbGet(gp.GRB.Callback.MIPSOL_OBJ)}\n"
             )
 
     return dump_solution
@@ -102,19 +97,23 @@ def solve_positional(
 
         for k in positions:
             a = {
-                (j, l): ro[j, n - k + l - 1]
-                if l < k
-                else sorted_processing_times[j] + pi[j, l - k - 1]
-                if l > k
+                (j, other_job): ro[j, n - k + other_job - 1]
+                if other_job < k
+                else sorted_processing_times[j] + pi[j, other_job - k - 1]
+                if other_job > k
                 else 0
                 for j in jobs
-                for l in jobs
+                for other_job in jobs
             }
             model.addConstrs(
                 c[j]
                 >= gamma[k]
-                - gp.quicksum(a[j, l] * u[j, l] for l in range(k))
-                + gp.quicksum(a[j, l] * u[j, l] for l in range(k + 1, n))
+                - gp.quicksum(
+                    a[j, other_job] * u[j, other_job] for other_job in range(k)
+                )
+                + gp.quicksum(
+                    a[j, other_job] * u[j, other_job] for other_job in range(k + 1, n)
+                )
                 for j in jobs
             )
 
@@ -449,7 +448,7 @@ if __name__ == "__main__":
 
     if solution is not None:
         print(solution)
-        print("cost: {}".format(cost))
+        print(f"cost: {cost}")
 
         validation_result, cost = read_single_machine_scheduling.verify_wt(
             solution,
@@ -463,13 +462,13 @@ if __name__ == "__main__":
         if validation_result:
             print("The solution is valid.")
             if is_optimal:
-                print("optimal cost: {}".format(cost))
+                print(f"optimal cost: {cost}")
             else:
                 if gap is not None:
-                    print("gap: {}".format(gap))
+                    print(f"gap: {gap}")
 
                 if best_bound is not None:
-                    print("best bound: {}".format(best_bound))
+                    print(f"best bound: {best_bound}")
         else:
             # It is possible that the objective cost does not match the actual cost
             # as the constraints are inequalities.

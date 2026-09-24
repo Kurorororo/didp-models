@@ -1,4 +1,5 @@
-solver: dual_bound_cbfs
+solver: dual_bound_cabs
 config:
   time_limit: 1800
+  f: max
 dump_to: history.csv

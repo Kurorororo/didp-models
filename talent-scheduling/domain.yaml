@@ -28,6 +28,28 @@ tables:
     object: scene
     args:
       - scene
+state_functions:
+  - name: came
+    type: set
+    expression: (union players ~remaining)
+  - name: standby
+    type: set
+    expression: (intersection came (union players remaining))
+transition_dominance:
+  - dominating:
+      name: shoot
+      parameters:
+        - name: t
+          object: scene
+    dominated:
+      name: shoot
+      parameters:
+        - name: s
+          object: scene
+    conditions:
+      - (is_in t (subsumption_candidates s))
+      - (or (< t s) (not (is_in s (subsumption_candidates t))))
+      - (is_subset (players t) (union came (players s)))
 base_cases:
   - - (is_empty remaining)
 reduce: min
@@ -39,7 +61,7 @@ transitions:
       - name: s
         object: remaining
     preconditions:
-      - (= (players s) (intersection (union players ~remaining) (union players remaining)))
+      - (= (players s) standby)
     effect:
       remaining: (remove s remaining)
     cost: (+ cost (base_cost s))
@@ -47,22 +69,8 @@ transitions:
     parameters:
       - name: s
         object: remaining
-    preconditions:
-      - forall:
-          - name: t
-            object: remaining
-        condition: >
-          (not (and (is_in t (subsumption_candidates s))
-                    (is_subset (players t)
-                               (union (union players ~remaining)
-                                      (players s)))))
     effect:
       remaining: (remove s remaining)
-    cost: >
-      (+ cost
-         (* (duration s)
-            (sum actor_cost (union (players s)
-                                   (intersection (union players remaining)
-                                                 (union players ~remaining))))))
+    cost: (+ cost (* (duration s) (sum actor_cost (union (players s) standby))))
 dual_bounds:
   - (sum base_cost remaining)

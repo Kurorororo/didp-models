@@ -62,14 +62,14 @@ def reduce_time_window(nodes, edges, a, b):
 
 
 def reduce_edges(nodes, edges, a, b):
-    print("edges: {}".format(len(edges)))
+    print(f"edges: {len(edges)}")
     forward_dependent = []
-    for (i, j) in edges.keys():
+    for i, j in edges.keys():
         if i == 0 or j == 0 or a[i] <= b[j]:
             forward_dependent.append((i, j))
 
     direct_forward_dependent = {}
-    for (i, j) in forward_dependent:
+    for i, j in forward_dependent:
         if (
             i == 0
             or j == 0
@@ -78,62 +78,57 @@ def reduce_edges(nodes, edges, a, b):
         ):
             direct_forward_dependent[i, j] = edges[i, j]
 
-    print("reduced edges: {}".format(len(direct_forward_dependent)))
+    print(f"reduced edges: {len(direct_forward_dependent)}")
     return direct_forward_dependent
 
 
-def validate(n, edges, a, b, solution, cost, tolerance=1e-4):
+def validate(n, edges, a, b, solution, cost, tolerance=1e-4, makespan=False):
     previous = solution[0]
     if previous != 0:
-        print(
-            "The tour does not start from the depot {} but from {}".format(0, previous)
-        )
+        print(f"The tour does not start from the depot {0} but from {previous}")
         return False
 
-    time = 0
+    time = max(0, a[0])
+    start_time = time
     actual_cost = 0
     visited = set([0])
 
     for i in solution[1:-1]:
         if i < 0 or i > n - 1:
-            print("Customer {} does not exist".format(i))
+            print(f"Customer {i} does not exist")
             return False
         if i in visited:
-            print("Customer {} is already visited".format(i))
+            print(f"Customer {i} is already visited")
             return False
         visited.add(i)
 
         actual_cost += edges[previous, i]
         time = max(a[i], time + edges[previous, i])
         if time > b[i]:
-            print("The time {} exceeds the deadline {} for {}".format(time, b[i], i))
+            print(f"The time {time} exceeds the deadline {b[i]} for {i}")
             return False
 
         previous = i
 
     if solution[-1] != 0:
-        print(
-            "The tour does not return to the depot {}, but to {}".format(
-                0, solution[-1]
-            )
-        )
+        print(f"The tour does not return to the depot {0}, but to {solution[-1]}")
         return False
 
-    actual_cost += edges[previous, 0]
+    actual_cost += edges.get((previous, 0), 0)
+    time += edges.get((previous, 0), 0)
+    if time > b[0] or start_time > b[0]:
+        print("The tour violates the depot time window")
+        return False
+    if makespan:
+        actual_cost = time - start_time
 
     if len(visited) != n:
-        print(
-            "The number of visited customers is {}, but should be {}".format(
-                len(visited), n
-            )
-        )
+        print(f"The number of visited customers is {len(visited)}, but should be {n}")
         return False
 
     if abs(actual_cost - cost) > tolerance:
         print(
-            "The cost of the solution {} mismatches the actual cost {}".format(
-                cost, actual_cost
-            )
+            f"The cost of the solution {cost} mismatches the actual cost {actual_cost}"
         )
         return False
 

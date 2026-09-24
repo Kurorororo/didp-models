@@ -11,14 +11,12 @@ def create_strips(problem_name, item_to_patterns, pattern_to_items):
     n_items = len(item_to_patterns)
     n_patterns = len(pattern_to_items)
     domain = [
-        "(define (domain openstacks-sequencedstrips-nonADL-{})".format(problem_name),
+        f"(define (domain openstacks-sequencedstrips-nonADL-{problem_name})",
         "    (:requirements :typing :negative-preconditions :action-costs)",
         "    (:types item pattern count)",
         "    (:constants",
-        "        " + " ".join(["i{}".format(i) for i in range(n_items)]) + " - item",
-        "        "
-        + " ".join(["p{}".format(j) for j in range(n_patterns)])
-        + " - pattern",
+        "        " + " ".join([f"i{i}" for i in range(n_items)]) + " - item",
+        "        " + " ".join([f"p{j}" for j in range(n_patterns)]) + " - pattern",
         "    )",
         "",
         "    (:predicates",
@@ -49,59 +47,52 @@ def create_strips(problem_name, item_to_patterns, pattern_to_items):
     ]
 
     for j in range(n_patterns):
-        precondition = "        :precondition (and (not (processed p{}))".format(j)
-        precondition += " ".join(
-            ["(started i{})".format(i) for i in pattern_to_items[j]]
-        )
+        precondition = f"        :precondition (and (not (processed p{j}))"
+        precondition += " ".join([f"(started i{i})" for i in pattern_to_items[j]])
         precondition += ")"
         domain += [
             "",
-            "    (:action process-pattern-p{}".format(j),
+            f"    (:action process-pattern-p{j}",
             "        :parameters ()",
             precondition,
-            "        :effect (and (processed p{}))".format(j),
+            f"        :effect (and (processed p{j}))",
             "    )",
         ]
 
     for i in range(n_items):
-        precondition = "        :precondition (and (started i{})".format(i)
-        precondition += " ".join(
-            ["(processed p{})".format(j) for j in item_to_patterns[i]]
-        )
+        precondition = f"        :precondition (and (started i{i})"
+        precondition += " ".join([f"(processed p{j})" for j in item_to_patterns[i]])
         precondition += "(stacks-avail ?avail)(next-count ?avail ?new-avail))"
         domain += [
             "",
-            "    (:action finish-item-i{}".format(i),
+            f"    (:action finish-item-i{i}",
             "        :parameters (?avail ?new-avail - count)",
             precondition,
-            "        :effect (and (not (started i{})) (finished i{})".format(i, i)
+            f"        :effect (and (not (started i{i})) (finished i{i})"
             + " (not (stacks-avail ?avail)) (stacks-avail ?new-avail)))",
         ]
     domain += ["    )"]
 
     problem = [
-        "(define (problem {})".format(problem_name),
-        "    (:domain openstacks-sequencedstrips-nonADL-{})".format(problem_name),
+        f"(define (problem {problem_name})",
+        f"    (:domain openstacks-sequencedstrips-nonADL-{problem_name})",
         "",
         "    (:objects",
-        "        "
-        + " ".join(["n{}".format(c) for c in range(n_items + 1)])
-        + " - count",
+        "        " + " ".join([f"n{c}" for c in range(n_items + 1)]) + " - count",
         "    )",
         "",
         "    (:init",
-        "        "
-        + " ".join(["(next-count n{} n{})".format(c, c + 1) for c in range(n_items)]),
+        "        " + " ".join([f"(next-count n{c} n{c + 1})" for c in range(n_items)]),
         "        (stacks-avail n0)",
     ]
 
     for i in range(n_items):
-        problem += ["        (waiting i{})".format(i)]
+        problem += [f"        (waiting i{i})"]
 
     problem += ["        (= (total-cost) 0)", "", ")", "", "(:goal", "    (and"]
 
     for i in range(n_items):
-        problem += ["        (finished i{})".format(i)]
+        problem += [f"        (finished i{i})"]
 
     problem += ["    ))", "", "    (:metric minimize (total-cost))", "", ")"]
 
@@ -112,13 +103,13 @@ def create_numeric(problem_name, item_to_patterns, pattern_to_items):
     n_items = len(item_to_patterns)
     n_patterns = len(pattern_to_items)
     domain = [
-        "(define (domain openstacks-numeric-{})".format(problem_name),
+        f"(define (domain openstacks-numeric-{problem_name})",
         "(:requirements :typing :negative-preconditions :numeric-fluents "
         + " :action-costs)",
         "(:types item pattern)",
         "(:constants",
-        " ".join(["i{}".format(i) for i in range(n_items)]) + " - item",
-        " ".join(["p{}".format(j) for j in range(n_patterns)]) + " - pattern",
+        " ".join([f"i{i}" for i in range(n_items)]) + " - item",
+        " ".join([f"p{j}" for j in range(n_patterns)]) + " - pattern",
         ")",
         "",
         "(:predicates",
@@ -144,51 +135,47 @@ def create_numeric(problem_name, item_to_patterns, pattern_to_items):
     ]
 
     for j in range(n_patterns):
-        precondition = ":precondition (and (not (processed p{}))".format(j)
-        precondition += "".join(
-            ["(started i{})".format(i) for i in pattern_to_items[j]]
-        )
+        precondition = f":precondition (and (not (processed p{j}))"
+        precondition += "".join([f"(started i{i})" for i in pattern_to_items[j]])
         precondition += ")"
         domain += [
             "",
-            "(:action process-pattern-p{}".format(j),
+            f"(:action process-pattern-p{j}",
             ":parameters ()",
             precondition,
-            ":effect (and (processed p{}))".format(j),
+            f":effect (and (processed p{j}))",
             ")",
         ]
 
     for i in range(n_items):
-        precondition = ":precondition (and (started i{})".format(i)
-        precondition += "".join(
-            ["(processed p{})".format(j) for j in item_to_patterns[i]]
-        )
+        precondition = f":precondition (and (started i{i})"
+        precondition += "".join([f"(processed p{j})" for j in item_to_patterns[i]])
         precondition += ")"
         domain += [
             "",
-            "(:action finish-item-i{}".format(i),
+            f"(:action finish-item-i{i}",
             ":parameters ()",
             precondition,
-            ":effect (and (not (started i{})) (finished i{})".format(i, i)
+            f":effect (and (not (started i{i})) (finished i{i})"
             + " (increase (stacks) 1)))",
         ]
     domain += [")"]
 
     problem = [
-        "(define (problem {})".format(problem_name),
-        "(:domain openstacks-numeric-{})".format(problem_name),
+        f"(define (problem {problem_name})",
+        f"(:domain openstacks-numeric-{problem_name})",
         "",
         "(:init",
         "(= (stacks) 0)",
     ]
 
     for i in range(n_items):
-        problem += ["", "(waiting i{})".format(i)]
+        problem += ["", f"(waiting i{i})"]
 
     problem += ["", "(= (total-cost) 0)", "", ")", "", "(:goal", "(and"]
 
     for i in range(n_items):
-        problem += ["(finished i{})".format(i)]
+        problem += [f"(finished i{i})"]
 
     problem += ["))", "", "(:metric minimize (opened))", "", ")"]
 

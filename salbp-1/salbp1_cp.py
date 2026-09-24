@@ -5,9 +5,7 @@ import math
 import time
 
 import docplex.cp.model as cp
-
 import read_salbp1
-
 
 start = time.perf_counter()
 
@@ -107,9 +105,7 @@ def solve(
 
                 if is_new_solution:
                     f.write(
-                        "{}, {}\n".format(
-                            time.perf_counter() - start, result.get_objective_value()
-                        )
+                        f"{time.perf_counter() - start}, {result.get_objective_value()}\n"
                     )
 
     if result.is_solution():
@@ -125,7 +121,7 @@ def solve(
 
         solution = [station_to_tasks[station] for station in range(1, cost + 1)]
         print(solution)
-        print("cost: {}".format(cost))
+        print(f"cost: {cost}")
         validation_result = read_salbp1.validate(
             number_of_tasks, cycle_time, task_times, predecessors, solution, round(cost)
         )
@@ -133,10 +129,10 @@ def solve(
             print("The solution is valid.")
 
             if result.is_solution_optimal():
-                print("optimal cost: {}".format(cost))
+                print(f"optimal cost: {cost}")
             else:
-                print("gap: {}".format(result.get_objective_gap()))
-                print("best bound: {}".format(result.get_objective_bound()))
+                print(f"gap: {result.get_objective_gap()}")
+                print(f"best bound: {result.get_objective_bound()}")
         else:
             print("The solution is invalid.")
     elif result.get_solve_status() == "infeasible":

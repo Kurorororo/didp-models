@@ -18,6 +18,37 @@ tables:
       - node
       - node
     default: 0
+state_functions:
+  - name: contaminated
+    type: set
+    expression: ~clean
+  - name: clean_edge_weight
+    type: integer
+    parameters:
+      - name: c
+        object: node
+    expression: (sum b c clean)
+  - name: contaminated_edge_weight
+    type: integer
+    parameters:
+      - name: c
+        object: node
+    expression: (sum b c contaminated)
+transition_dominance:
+  - dominating:
+      name: sweep
+      parameters:
+        - name: i
+          object: node
+    dominated:
+      name: sweep
+      parameters:
+        - name: j
+          object: node
+    conditions:
+      - (!= i j)
+      - (<= (+ (a i) (contaminated_edge_weight i)) (+ (a j) (contaminated_edge_weight j)))
+      - (<= (contaminated_edge_weight i) (clean_edge_weight i))
 base_cases:
   - - (is_subset all-nodes clean)
 reduce: min
@@ -31,6 +62,6 @@ transitions:
       - (not (is_in c clean))
     effect:
       clean: (add c clean)
-    cost: (max cost (+ (a c) (+ (sum b c all-nodes) (sum b clean (remove c ~clean)))))
+    cost: (max cost (+ (a c) (+ (sum b c all-nodes) (sum b clean (remove c contaminated)))))
 dual_bounds:
   - 0

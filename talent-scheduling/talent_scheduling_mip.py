@@ -4,9 +4,7 @@ import argparse
 import time
 
 import gurobipy as gp
-
 import read_talent_scheduling
-
 
 start = time.perf_counter()
 
@@ -15,10 +13,7 @@ def get_callback(file, base_cost):
     def dump_solution(model, where):
         if where == gp.GRB.Callback.MIPSOL:
             file.write(
-                "{}, {}\n".format(
-                    time.perf_counter() - start,
-                    round(model.cbGet(gp.GRB.Callback.MIPSOL_OBJ)) + base_cost,
-                )
+                f"{time.perf_counter() - start}, {round(model.cbGet(gp.GRB.Callback.MIPSOL_OBJ)) + base_cost}\n"
             )
 
     return dump_solution
@@ -50,7 +45,7 @@ def solve(
     x = model.addVars(scene_pairs, vtype=gp.GRB.BINARY)
     x_end = model.addVars(scenes, vtype=gp.GRB.BINARY)
     e = model.addVars(actors, vtype=gp.GRB.INTEGER, lb=0, obj=negative_actor_to_cost)
-    l = model.addVars(actors, vtype=gp.GRB.INTEGER, lb=0, obj=actor_to_cost)
+    last_day = model.addVars(actors, vtype=gp.GRB.INTEGER, lb=0, obj=actor_to_cost)
     t_start = model.addVar(vtype=gp.GRB.INTEGER, lb=0)
     t = model.addVars(scenes, vtype=gp.GRB.INTEGER, lb=0)
     t_end = model.addVar(vtype=gp.GRB.INTEGER, lb=0)
@@ -71,7 +66,7 @@ def solve(
         e[i] <= t[j] for i in actors for j in scenes if actor_to_scenes[i][j] == 1
     )
     model.addConstrs(
-        t[j] + scene_to_duration[j] - 1 <= l[i]
+        t[j] + scene_to_duration[j] - 1 <= last_day[i]
         for i in actors
         for j in scenes
         if actor_to_scenes[i][j] == 1
@@ -175,7 +170,7 @@ if __name__ == "__main__":
         )
 
         print(solution)
-        print("cost: {}".format(cost))
+        print(f"cost: {cost}")
 
         validation_result = read_talent_scheduling.validate(
             solution,
@@ -188,9 +183,9 @@ if __name__ == "__main__":
         if validation_result:
             print("The solution is valid.")
             if is_optimal:
-                print("optimal cost: {}".format(cost))
+                print(f"optimal cost: {cost}")
             else:
-                print("gap: {}".format(gap))
-                print("best bound: {}".format(best_bound))
+                print(f"gap: {gap}")
+                print(f"best bound: {best_bound}")
         else:
             print("The solution is invalid.")

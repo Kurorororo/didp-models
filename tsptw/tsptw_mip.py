@@ -13,10 +13,7 @@ def get_callback(file):
     def dump_solution(model, where):
         if where == gp.GRB.Callback.MIPSOL:
             file.write(
-                "{}, {}\n".format(
-                    time.perf_counter() - start,
-                    model.cbGet(gp.GRB.Callback.MIPSOL_OBJ),
-                )
+                f"{time.perf_counter() - start}, {model.cbGet(gp.GRB.Callback.MIPSOL_OBJ)}\n"
             )
 
     return dump_solution
@@ -110,21 +107,21 @@ def solve_tsptw(
                 break
         print(tour)
         cost = model.objVal
-        print("cost: {}".format(cost))
+        print(f"cost: {cost}")
 
         validation_result = read_tsptw.validate(
             n, edges, a, b, tour, cost, makespan=makespan
         )
 
-        print("Search time: {}s".format(model.getAttr("Runtime")))
+        print(f"Search time: {model.getAttr('Runtime')}s")
 
         if validation_result:
             print("The solution is valid.")
             if status == gp.GRB.OPTIMAL:
-                print("optimal cost: {}".format(model.objVal))
+                print(f"optimal cost: {model.objVal}")
             else:
-                print("gap: {}".format(model.getAttr("MIPGap")))
-                print("best bound: {}".format(model.getAttr("ObjBound")))
+                print(f"gap: {model.getAttr('MIPGap')}")
+                print(f"best bound: {model.getAttr('ObjBound')}")
         else:
             print("The solution is invalid.")
 
@@ -156,7 +153,7 @@ def add_flow_based(n, nodes, edges, x, model):
 
 
 def reduce_edges(nodes, edges, a, b):
-    print("edges: {}".format(len(edges)))
+    print(f"edges: {len(edges)}")
     forward_dependent = []
     for i, j in edges.keys():
         if i == 0 or j == 0 or a[i] <= b[j]:
@@ -172,7 +169,7 @@ def reduce_edges(nodes, edges, a, b):
         ):
             direct_forward_dependent[i, j] = edges[i, j]
 
-    print("reduced edges: {}".format(len(direct_forward_dependent)))
+    print(f"reduced edges: {len(direct_forward_dependent)}")
     return direct_forward_dependent
 
 

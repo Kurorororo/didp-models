@@ -1,108 +1,109 @@
+domain: OPTW
 objects:
-  - node
-state_variables:
-  - name: unvisited
-    type: set
-    object: node
-  - name: location
-    type: element
-    object: node
-  - name: time
-    type: integer
-    preference: less
-tables:
-  - name: opening
-    type: integer
-    args:
-      - node
-  - name: profit
-    type: integer
-    args:
-      - node
-  - name: closing
-    type: integer
-    args:
-      - node
-  - name: distance
-    type: integer
-    args:
-      - node
-      - node
-    default: 0
-  - name: shortest_distance
-    type: integer
-    args:
-      - node
-      - node
-    default: 0
-  - name: shortest_return_distance
-    type: integer
-    args:
-      - node
-      - node
-    default: 0
-  - name: distance_plus_shortest_return
-    type: integer
-    args:
-      - node
-      - node
-  - name: min_distance_from
-    type: continuous
-    args:
-      - node
-  - name: min_distance_to
-    type: continuous
-    args:
-      - node
-  - name: efficiency_from
-    type: continuous
-    args:
-      - node
-  - name: efficiency_to
-    type: continuous
-    args:
-      - node
-base_cases:
-  - - (is_empty unvisited)
-    - (<= (+ time (distance location 0)) (closing 0))
+- node
 reduce: max
 cost_type: integer
+state_variables:
+- name: reachable
+  type: set
+  object: node
+  preference: greater
+- name: location
+  type: element
+  object: node
+- name: time
+  type: integer
+  preference: less
+tables:
+- name: goal
+  type: element
+  object: node
+- name: epsilon
+  type: continuous
+- name: profit
+  type: integer
+  args:
+  - node
+- name: reward
+  type: integer
+  args:
+  - node
+- name: opening
+  type: integer
+  args:
+  - node
+- name: closing
+  type: integer
+  args:
+  - node
+- name: min_from
+  type: integer
+  args:
+  - node
+- name: min_to
+  type: integer
+  args:
+  - node
+- name: shortest_return
+  type: integer
+  args:
+  - node
+- name: travel
+  type: integer
+  args:
+  - node
+  - node
+- name: shortest
+  type: integer
+  args:
+  - node
+  - node
+state_functions:
+- name: time_next
+  type: integer
+  parameters:
+  - name: to
+    object: node
+  expression: (max (+ time (travel location to)) (opening to))
+constraints:
+- condition: (<= time (closing 0))
+base_cases:
+- - (= location goal)
 transitions:
-  - name: remove
-    parameters:
-      - name: to
-        object: unvisited
-    preconditions:
-      - >
-        (or (> (+ time (shortest_distance location to)) (closing to))
-            (> (+ time (shortest_return_distance location to)) (closing 0)))
-    effect:
-      unvisited: (remove to unvisited)
-    cost: cost
-    forced: true
-  - name: clear
-    parameters:
-      - name: to
-        object: unvisited
-    preconditions:
-      - condition: (or (> (+ time (distance location via)) (closing via))
-                       (> (+ time (distance_plus_shortest_return location via)) (closing 0)))
-        forall:
-          - name: via
-            object: unvisited
-    effect:
-      unvisited: (remove to unvisited)
-    cost: cost
-    forced: true
-  - name: visit
-    parameters:
-      - name: to
-        object: unvisited
-    preconditions:
-      - (<= (+ time (distance location to)) (closing to))
-      - (<= (+ time (distance_plus_shortest_return location to)) (closing 0))
-    effect:
-      unvisited: (remove to unvisited)
-      location: to
-      time: (max (+ time (distance location to)) (opening to))
-    cost: (+ cost (profit to))
+- name: visit
+  parameters:
+  - name: to
+    object: reachable
+  cost: (+ cost (profit to))
+  preconditions:
+  - (!= location goal)
+  - (<= (time_next to) (closing to))
+  - (<= (+ (time_next to) (shortest_return to)) (closing 0))
+  effect:
+    location: to
+    time: (time_next to)
+    reachable: (filter x (remove to reachable) (and (<= (max (+ (time_next to) (shortest to x)) (opening
+      x)) (closing x)) (<= (+ (max (+ (time_next to) (shortest to x)) (opening x)) (shortest_return x))
+      (closing 0))))
+- name: finish
+  cost: cost
+  effect:
+    location: goal
+    time: (+ time (travel location 0))
+    reachable: (node)
+  preconditions:
+  - (!= location goal)
+  - (<= (+ time (travel location 0)) (closing 0))
+dual_bounds:
+- >-
+  (if (= location goal) 0
+    (floor (+ epsilon
+      (fractional_knapsack reachable
+        (max 0 (- (- (closing 0) time) (min_from location)))
+        reward min_from))))
+- >-
+  (if (= location goal) 0
+    (floor (+ epsilon
+      (fractional_knapsack reachable
+        (max 0 (- (- (closing 0) time) (min_to 0)))
+        reward min_to))))

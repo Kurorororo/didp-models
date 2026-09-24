@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import math
 import os
 import resource
 import subprocess
@@ -59,184 +60,52 @@ def create_didp(
     closing,
     distance,
     epsilon=1e-6,
-    blind=False,
 ):
-    shortest_distance = compute_shortest_distance(distance, service_time)
-
-    min_distance_from = [
-        min(service_time[i] + distance[i][j] for j in vertices if i != j)
-        for i in vertices
+    if not math.isfinite(epsilon) or epsilon < 0:
+        raise ValueError("epsilon must be finite and nonnegative")
+    goal = len(vertices)
+    shortest = compute_shortest_distance(distance, service_time)
+    travel = [[service_time[i] + distance[i][j] for j in vertices] for i in vertices]
+    min_from = [
+        min((travel[i][j] for j in vertices if i != j), default=0) for i in vertices
     ]
-    efficiency_from = [p / c + epsilon for p, c in zip(profit, min_distance_from)]
-
-    min_distance_to = [
-        min(service_time[i] + distance[i][j] for i in vertices if i != j)
-        for j in vertices
+    min_to = [
+        min((travel[i][j] for i in vertices if i != j), default=0) for j in vertices
     ]
-    efficiency_to = [p / c + epsilon for p, c in zip(profit, min_distance_to)]
-
-    output_lines = [
-        "object_numbers:",
-        "  node: {}".format(len(vertices)),
-        "target:",
-        "  unvisited: [ " + ", ".join([str(i) for i in vertices[1:]]) + " ]",
-        "  location: 0",
-        "  time: 0",
-        "table_values:",
-        "  profit: { "
-        + ", ".join(["{}: {}".format(i, profit[i]) for i in vertices])
-        + " }",
-        "  opening: { "
-        + ", ".join(["{}: {}".format(i, opening[i]) for i in vertices])
-        + " }",
-        "  closing: { "
-        + ", ".join(["{}: {}".format(i, closing[i]) for i in vertices])
-        + " }",
-        "  min_distance_from: { "
-        + ", ".join(["{}: {}".format(i, min_distance_from[i]) for i in vertices])
-        + " }",
-        "  min_distance_to: { "
-        + ", ".join(["{}: {}".format(i, min_distance_to[i]) for i in vertices])
-        + " }",
-        "  efficiency_from: { "
-        + ", ".join(["{}: {}".format(i, efficiency_from[i]) for i in vertices])
-        + " }",
-        "  efficiency_to: { "
-        + ", ".join(["{}: {}".format(i, efficiency_to[i]) for i in vertices])
-        + " }",
-        "  distance:",
-        "    {",
+    initial_time = max(0, opening[0])
+    reachable = [
+        i
+        for i in vertices[1:]
+        if max(initial_time + shortest[0][i], opening[i])
+        <= min(closing[i], closing[0] - shortest[i][0])
     ]
-
-    for i in vertices:
-        for j in vertices:
-            output_lines.append(
-                "      [{}, {}]: {},".format(i, j, service_time[i] + distance[i][j])
-            )
-
-    output_lines.append("    }")
-    output_lines += [
-        "  shortest_distance:",
-        "    {",
-    ]
-
-    for i in vertices:
-        for j in vertices:
-            output_lines.append(
-                "      [{}, {}]: {},".format(i, j, shortest_distance[i][j])
-            )
-
-    output_lines.append("    }")
-
-    output_lines += [
-        "  shortest_return_distance:",
-        "    {",
-    ]
-
-    for i in vertices:
-        for j in vertices:
-            output_lines.append(
-                "      [{}, {}]: {},".format(
-                    i,
-                    j,
-                    shortest_distance[i][j] + shortest_distance[j][0],
-                )
-            )
-
-    output_lines.append("    }")
-
-    output_lines += [
-        "  distance_plus_shortest_return:",
-        "    {",
-    ]
-
-    for i in vertices:
-        for j in vertices:
-            output_lines.append(
-                "      [{}, {}]: {},".format(
-                    i,
-                    j,
-                    service_time[i] + distance[i][j] + shortest_distance[j][0],
-                )
-            )
-
-    output_lines.append("    }")
-
-    if not blind:
-        output_lines += [
-            "dual_bounds:",
-            "  - >",
-        ]
-
-        for i, v in enumerate(vertices[1:]):
-            line = "    "
-
-            if i < len(vertices[1:]) - 1 and len(vertices[1:]) > 1:
-                line += "(+ "
-
-            if i == len(vertices[1:]) - 1:
-                line += "   "
-
-            line += "(if (and (is_in {} unvisited) (and (<= (+ time (shortest_distance location {})) {}) (<= (+ time (shortest_return_distance location {})) {}))) {} 0)".format(
-                v, v, closing[v], v, closing[0], profit[v]
-            )
-
-            if i == len(vertices[1:]) - 1:
-                line += ")" * (len(vertices[1:]) - 1)
-
-            output_lines.append(line)
-
-        output_lines += [
-            "  - >",
-            "    (floor (* (- (- {} time) (min_distance_from location))".format(
-                closing[0]
-            ),
-        ]
-
-        for i, v in enumerate(vertices[1:]):
-            line = "              "
-
-            if i < len(vertices[1:]) - 1 and len(vertices[1:]) > 1:
-                line += "(max "
-
-            if i == len(vertices[1:]) - 1:
-                line += "     "
-
-            line += "(if (and (is_in {} unvisited) (and (<= (+ time (shortest_distance location {})) {}) (<= (+ time (shortest_return_distance location {})) {}))) {} 0)".format(
-                v, v, closing[v], v, closing[0], efficiency_from[v]
-            )
-
-            if i == len(vertices[1:]) - 1:
-                line += ")" * (len(vertices[1:]) - 1) + "))"
-
-            output_lines.append(line)
-
-        output_lines += [
-            "  - >",
-            "    (floor (* (- (- {} time) {})".format(closing[0], min_distance_to[0]),
-        ]
-
-        for i, v in enumerate(vertices[1:]):
-            line = "              "
-
-            if i < len(vertices[1:]) - 1 and len(vertices[1:]) > 1:
-                line += "(max "
-
-            if i == len(vertices[1:]) - 1:
-                line += "     "
-
-            line += "(if (and (is_in {} unvisited) (and (<= (+ time (shortest_distance location {})) {}) (<= (+ time (shortest_return_distance location {})) {}))) {} 0)".format(
-                v, v, closing[v], v, closing[0], efficiency_to[v]
-            )
-
-            if i == len(vertices[1:]) - 1:
-                line += ")" * (len(vertices[1:]) - 1) + "))"
-
-            output_lines.append(line)
-
-    output_lines += []
-
-    return "\n".join(output_lines)
+    values = dict(
+        goal=goal,
+        epsilon=epsilon,
+        profit=dict(enumerate(profit + [0])),
+        reward=dict(enumerate([max(0, p) for p in profit] + [0])),
+        opening=dict(enumerate(opening + [0])),
+        closing=dict(enumerate(closing + [closing[0]])),
+        min_from=dict(enumerate(min_from + [0])),
+        min_to=dict(enumerate(min_to + [0])),
+        shortest_return=dict(enumerate([shortest[i][0] for i in vertices] + [0])),
+        travel={
+            (i, j): travel[i][j] if i < goal and j < goal else 0
+            for i in range(goal + 1)
+            for j in range(goal + 1)
+        },
+        shortest={
+            (i, j): shortest[i][j] if i < goal and j < goal else 0
+            for i in range(goal + 1)
+            for j in range(goal + 1)
+        },
+    )
+    problem = dict(
+        object_numbers=dict(node=goal + 1),
+        target=dict(reachable=reachable, location=0, time=initial_time),
+        table_values=values,
+    )
+    return yaml.safe_dump(problem, sort_keys=False)
 
 
 if __name__ == "__main__":
@@ -272,18 +141,17 @@ if __name__ == "__main__":
         closing,
         distance,
         epsilon=args.epsilon,
-        blind=args.blind,
     )
 
     with open("problem.yaml", "w") as f:
         f.write(dypdl_text)
 
-    domain_file = "domain.yaml"
+    domain_file = "domain_blind.yaml" if args.blind else "domain.yaml"
     domain_path = os.path.join(os.path.dirname(__file__), domain_file)
 
     if args.didp_path is not None:
         fn = get_limit_resource(args.time_limit, args.memory_limit)
-        print("Preprocessing time: {}s".format(time.perf_counter() - start))
+        print(f"Preprocessing time: {time.perf_counter() - start}s")
         subprocess.run(
             [args.didp_path, domain_path, "problem.yaml", args.config_path],
             preexec_fn=fn,
@@ -301,7 +169,7 @@ if __name__ == "__main__":
         solution.append(0)
 
         print(solution)
-        print("cost: {}".format(cost))
+        print(f"cost: {cost}")
 
         validation_result = read_optw.validate_optw(
             service_time, profit, opening, closing, distance, solution, cost
@@ -313,4 +181,4 @@ if __name__ == "__main__":
             print("The solution is invalid.")
 
     end = time.perf_counter()
-    print("Execution time: {}s".format(end - start))
+    print(f"Execution time: {end - start}s")

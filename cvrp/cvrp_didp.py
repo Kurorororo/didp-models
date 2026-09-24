@@ -37,11 +37,11 @@ def create_model(n, nodes, edges, capacity, demand, k):
         ]
     )
 
-    model.add_base_case([unvisited.is_empty(), location == 0])
+    model.add_base_case([unvisited.is_empty()], cost=distance[location, 0])
     name_to_partial_tour = {}
 
     for i in range(1, n):
-        name = "visit {}".format(i)
+        name = f"visit {i}"
         name_to_partial_tour[name] = (nodes[i],)
         visit = dp.Transition(
             name=name,
@@ -56,7 +56,7 @@ def create_model(n, nodes, edges, capacity, demand, k):
         model.add_transition(visit)
 
     for i in range(1, n):
-        name = "visit {} via depot".format(i)
+        name = f"visit {i} via depot"
         name_to_partial_tour[name] = (nodes[0], nodes[i])
         visit_via_depot = dp.Transition(
             name=name,
@@ -67,35 +67,33 @@ def create_model(n, nodes, edges, capacity, demand, k):
                 (load, demand[i]),
                 (vehicles, vehicles + 1),
             ],
-            preconditions=[unvisited.contains(i), vehicles < k],
+            preconditions=[unvisited.contains(i), vehicles < k, demand[i] <= capacity],
         )
         model.add_transition(visit_via_depot)
 
-    name = "return"
-    name_to_partial_tour[name] = (nodes[0],)
-    return_to_depot = dp.Transition(
-        name=name,
-        cost=dp.IntExpr.state_cost() + distance[location, 0],
-        effects=[(location, 0)],
-        preconditions=[unvisited.is_empty(), location != 0],
-    )
-    model.add_transition(return_to_depot)
-
     model.add_state_constr((k - vehicles + 1) * capacity >= load + demand[unvisited])
 
-    min_distance_to = model.add_int_table(
-        [min(distance_matrix[i][j] for i in range(n) if i != j) for j in range(n)]
+    # A compressed edge can traverse the depot when opening a new route.
+    # Taking the cheaper alternative keeps the MST valid even after rounding
+    # breaks the triangle inequality.
+    mst_distance = model.add_int_table(
+        [
+            [
+                min(
+                    distance_matrix[i][j], distance_matrix[i][0] + distance_matrix[0][j]
+                )
+                for j in range(n)
+            ]
+            for i in range(n)
+        ]
     )
+    min_return = min((distance_matrix[i][0] for i in range(1, n)), default=0)
     model.add_dual_bound(
-        min_distance_to[unvisited] + (location != 0).if_then_else(min_distance_to[0], 0)
-    )
-
-    min_distance_from = model.add_int_table(
-        [min(distance_matrix[i][j] for j in range(n) if i != j) for i in range(n)]
-    )
-    model.add_dual_bound(
-        min_distance_from[unvisited]
-        + (location != 0).if_then_else(min_distance_from[location], 0)
+        unvisited.is_empty().if_then_else(
+            distance[location, 0],
+            dp.minimum_spanning_tree(unvisited.add(location), mst_distance)
+            + min_return,
+        )
     )
 
     return model, name_to_partial_tour
@@ -110,78 +108,38 @@ def solve(
     seed=2023,
     initial_beam_size=1,
     threads=1,
-    parallel_type=0,
 ):
-    if solver_name == "LNBS":
-        if parallel_type == 2:
-            parallelization_method = dp.BeamParallelizationMethod.Sbs
-        elif parallel_type == 1:
-            parallelization_method = dp.BeamParallelizationMethod.Hdbs1
-        else:
-            parallelization_method = dp.BeamParallelizationMethod.Hdbs2
-
+    options = dict(time_limit=time_limit, quiet=False)
+    if solver_name == "CAASDy":
+        solver = dp.CAASDy(model, **options)
+    elif solver_name == "CABS":
+        solver = dp.CABS(
+            model, initial_beam_size=initial_beam_size, threads=threads, **options
+        )
+    elif solver_name == "LNBS":
         solver = dp.LNBS(
             model,
             initial_beam_size=initial_beam_size,
+            threads=threads,
             seed=seed,
-            parallelization_method=parallelization_method,
-            threads=threads,
-            time_limit=time_limit,
-            quiet=False,
+            **options,
         )
-    elif solver_name == "DD-LNS":
-        solver = dp.DDLNS(model, time_limit=time_limit, quiet=False, seed=seed)
-    elif solver_name == "FR":
-        solver = dp.ForwardRecursion(model, time_limit=time_limit, quiet=False)
-    elif solver_name == "BrFS":
-        solver = dp.BreadthFirstSearch(model, time_limit=time_limit, quiet=False)
-    elif solver_name == "CAASDy":
-        solver = dp.CAASDy(model, time_limit=time_limit, quiet=False)
-    elif solver_name == "DFBB":
-        solver = dp.DFBB(model, time_limit=time_limit, quiet=False)
-    elif solver_name == "CBFS":
-        solver = dp.CBFS(model, time_limit=time_limit, quiet=False)
-    elif solver_name == "ACPS":
-        solver = dp.ACPS(model, time_limit=time_limit, quiet=False)
-    elif solver_name == "APPS":
-        solver = dp.APPS(model, time_limit=time_limit, quiet=False)
-    elif solver_name == "DBDFS":
-        solver = dp.DBDFS(model, time_limit=time_limit, quiet=False)
     else:
-        if parallel_type == 2:
-            parallelization_method = dp.BeamParallelizationMethod.Sbs
-        elif parallel_type == 1:
-            parallelization_method = dp.BeamParallelizationMethod.Hdbs1
-        else:
-            parallelization_method = dp.BeamParallelizationMethod.Hdbs2
+        raise ValueError(f"Unknown solver: {solver_name}")
 
-        solver = dp.CABS(
-            model,
-            initial_beam_size=initial_beam_size,
-            threads=threads,
-            parallelization_method=parallelization_method,
-            time_limit=time_limit,
-            quiet=False,
-        )
+    with open(history, "w") as f:
+        is_terminated = False
 
-    if solver_name == "FR":
-        solution = solver.search()
-    else:
-        with open(history, "w") as f:
-            is_terminated = False
+        while not is_terminated:
+            solution, is_terminated = solver.search_next()
 
-            while not is_terminated:
-                solution, is_terminated = solver.search_next()
+            if solution.cost is not None:
+                f.write(f"{time.perf_counter() - start}, {solution.cost}\n")
+                f.flush()
 
-                if solution.cost is not None:
-                    f.write(
-                        "{}, {}\n".format(time.perf_counter() - start, solution.cost)
-                    )
-                    f.flush()
-
-    print("Search time: {}s".format(solution.time))
-    print("Expanded: {}".format(solution.expanded))
-    print("Generated: {}".format(solution.generated))
+    print(f"Search time: {solution.time}s")
+    print(f"Expanded: {solution.expanded}")
+    print(f"Generated: {solution.generated}")
 
     if solution.is_infeasible:
         return None, None, None, False, True
@@ -191,6 +149,8 @@ def solve(
         for t in solution.transitions:
             tour += list(name_to_partial_tour[t.name])
 
+        tour.append(tour[0])
+
         return tour, solution.cost, solution.best_bound, solution.is_optimal, False
 
 
@@ -199,11 +159,10 @@ if __name__ == "__main__":
     parser.add_argument("input", type=str)
     parser.add_argument("--time-out", default=1800, type=int)
     parser.add_argument("--history", default="history.csv", type=str)
-    parser.add_argument("--config", default="CABS", type=str)
+    parser.add_argument("--config", choices=["CAASDy", "CABS", "LNBS"], default="CABS")
     parser.add_argument("--seed", default=2023, type=int)
     parser.add_argument("--threads", default=1, type=int)
     parser.add_argument("--initial-beam-size", default=1, type=int)
-    parser.add_argument("--parallel-type", default=0, type=int)
     args = parser.parse_args()
 
     name = os.path.basename(args.input)
@@ -229,20 +188,19 @@ if __name__ == "__main__":
         seed=args.seed,
         threads=args.threads,
         initial_beam_size=args.initial_beam_size,
-        parallel_type=args.parallel_type,
     )
 
     if is_infeasible:
         print("The problem is infeasible.")
     else:
-        print("best bound: {}".format(bound))
+        print(f"best bound: {bound}")
 
         if cost is not None:
             print(" ".join(map(str, solution)))
-            print("cost: {}".format(cost))
+            print(f"cost: {cost}")
 
             if is_optimal:
-                print("optimal cost: {}".format(cost))
+                print(f"optimal cost: {cost}")
 
             validation_result = read_tsplib.validate_cvrp(
                 n, nodes, edges, capacity, demand, depot, solution, cost, k

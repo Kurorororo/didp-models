@@ -1,5 +1,5 @@
-import os
 import argparse
+import os
 import random
 
 import read_tsplib
@@ -44,8 +44,8 @@ def create_demand(nodes, precedence, max_demand):
 
 
 def generate_demand_lines(nodes, demand_dimension, demand):
-    return ["DEMAND_DIMENSION: {}\n".format(demand_dimension), "DEMAND_SECTION\n"] + [
-        "{}     ".format(i) + "    ".join(map(str, demand[i])) + "\n" for i in nodes
+    return [f"DEMAND_DIMENSION: {demand_dimension}\n", "DEMAND_SECTION\n"] + [
+        f"{i}     " + "    ".join(map(str, demand[i])) + "\n" for i in nodes
     ]
 
 
@@ -90,10 +90,10 @@ if __name__ == "__main__":
             for factor in args.capacity:
                 q = d * factor
                 demand_dimension, demand = create_demand(nodes, direct_precedence, d)
-                capacity_lines = ["CAPACITY: {}\n".format(q)]
+                capacity_lines = [f"CAPACITY: {q}\n"]
                 demand_lines = generate_demand_lines(nodes, demand_dimension, demand)
                 output_path = os.path.join(
-                    args.mpdtsp_dir, "{}Q{}max{}.tsp".format(problem_name, q, d)
+                    args.mpdtsp_dir, f"{problem_name}Q{q}max{d}.tsp"
                 )
 
                 with open(output_path, "w") as f:

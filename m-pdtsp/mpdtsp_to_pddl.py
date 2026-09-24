@@ -18,35 +18,27 @@ def generate_domain(nodes, predecessors, demand, capacity):
         "(define (domain mPDTSP)",
         "    (:requirements :strips :typing :fluents :negative-preconditions)",
         "    (:types customer)",
-        "    (:constants " + " ".join("c{}".format(i) for i in nodes) + " - customer)",
+        "    (:constants " + " ".join(f"c{i}" for i in nodes) + " - customer)",
         "    (:predicates (connected ?c1 ?c2 - customer) (visited ?c - customer) (loc ?c - customer))",
         "    (:functions (total-cost) (load) (travel-cost ?c1 ?c2 - customer))",
     ]
 
     for i in nodes[1:-1]:
         lines += [
-            "    (:action visit-{}".format(i),
+            f"    (:action visit-{i}",
             "        :parameters (?from - customer)",
-            "        :precondition (and (not (visited c{})) (connected ?from c{}) (loc ?from) (<= (+ (load) {}) {}) ".format(
-                i, i, demand[i], capacity
-            )
-            + " ".join(["(visited c{})".format(j) for j in predecessors[i]])
+            f"        :precondition (and (not (visited c{i})) (connected ?from c{i}) (loc ?from) (<= (+ (load) {demand[i]}) {capacity}) "
+            + " ".join([f"(visited c{j})" for j in predecessors[i]])
             + ")",
-            "        :effect (and (not (loc ?from)) (loc c{}) (visited c{}) (increase (load) {}) (increase (total-cost) (travel-cost ?from c{})))".format(
-                i, i, demand[i], i
-            ),
+            f"        :effect (and (not (loc ?from)) (loc c{i}) (visited c{i}) (increase (load) {demand[i]}) (increase (total-cost) (travel-cost ?from c{i})))",
             "    )",
         ]
 
     lines += [
         "    (:action return",
         "        :parameters (?from - customer)",
-        "        :precondition (and (connected ?from c{}) (loc ?from) (forall (?c - customer) (visited ?c)))".format(
-            nodes[-1]
-        ),
-        "        :effect (and (not (loc ?from)) (loc c{}) (increase (total-cost) (travel-cost ?from c{})))".format(
-            nodes[-1], nodes[-1]
-        ),
+        f"        :precondition (and (connected ?from c{nodes[-1]}) (loc ?from) (forall (?c - customer) (visited ?c)))",
+        f"        :effect (and (not (loc ?from)) (loc c{nodes[-1]}) (increase (total-cost) (travel-cost ?from c{nodes[-1]})))",
         "    )",
         ")",
     ]
@@ -56,32 +48,32 @@ def generate_domain(nodes, predecessors, demand, capacity):
 
 def generate_problem(name, nodes, edges):
     output_lines = [
-        "(define (problem {})".format(name),
+        f"(define (problem {name})",
         "    (:domain mPDTSP)",
         "    (:init",
         "        (= (total-cost) 0)",
-        "        (loc c{})".format(nodes[0]),
+        f"        (loc c{nodes[0]})",
         "        (= (load) 0)",
-        "        (visited c{})".format(nodes[0]),
-        "        (visited c{})".format(nodes[-1]),
+        f"        (visited c{nodes[0]})",
+        f"        (visited c{nodes[-1]})",
     ]
 
     for i in nodes:
         for j in nodes:
             if (i, j) in edges:
                 output_lines += [
-                    "        (connected c{} c{})".format(i, j),
-                    "        (= (travel-cost c{} c{}) {})".format(i, j, edges[i, j]),
+                    f"        (connected c{i} c{j})",
+                    f"        (= (travel-cost c{i} c{j}) {edges[i, j]})",
                 ]
 
     output_lines += [
         "    )",
         "    (:goal (and",
-        "        (loc c{})".format(nodes[-1]),
+        f"        (loc c{nodes[-1]})",
     ]
 
     for i in nodes:
-        output_lines += ["        (visited c{})".format(i)]
+        output_lines += [f"        (visited c{i})"]
 
     output_lines += ["        )", "    )", "    (:metric minimize total-cost)", ")"]
 

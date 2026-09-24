@@ -1,5 +1,5 @@
-solver: dual_bound_dbdfs
+solver: dual_bound_lnbs
 config:
-  width: 1
   time_limit: 1800
+  f: max
 dump_to: history.csv

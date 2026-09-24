@@ -4,9 +4,7 @@ import argparse
 import time
 
 import gurobipy as gp
-
 import read_bpp
-
 
 start = time.perf_counter()
 
@@ -15,10 +13,7 @@ def get_callback(file):
     def dump_solution(model, where):
         if where == gp.GRB.Callback.MIPSOL:
             file.write(
-                "{}, {}\n".format(
-                    time.perf_counter() - start,
-                    model.cbGet(gp.GRB.Callback.MIPSOL_OBJ),
-                )
+                f"{time.perf_counter() - start}, {model.cbGet(gp.GRB.Callback.MIPSOL_OBJ)}\n"
             )
 
     return dump_solution
@@ -72,16 +67,16 @@ def solve(n, c, weights, time_limit=None, threads=1, history=None):
             if len(items_in_bin) > 0:
                 solution.append(items_in_bin)
         print(solution)
-        print("cost: {}".format(cost))
+        print(f"cost: {cost}")
         validation_result = read_bpp.validate(n, c, weights, solution, cost)
         if validation_result:
             print("The solution is valid.")
 
             if status == gp.GRB.OPTIMAL:
-                print("optimal cost: {}".format(model.objVal))
+                print(f"optimal cost: {model.objVal}")
             else:
-                print("gap: {}".format(model.getAttr("MIPGap")))
-                print("best bound: {}".format(model.getAttr("ObjBound")))
+                print(f"gap: {model.getAttr('MIPGap')}")
+                print(f"best bound: {model.getAttr('ObjBound')}")
         else:
             print("The solution is invalid.")
 

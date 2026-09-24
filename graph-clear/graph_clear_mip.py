@@ -13,10 +13,7 @@ def get_callback(file):
     def dump_solution(model, where):
         if where == gp.GRB.Callback.MIPSOL:
             file.write(
-                "{}, {}\n".format(
-                    time.perf_counter() - start,
-                    model.cbGet(gp.GRB.Callback.MIPSOL_OBJ),
-                )
+                f"{time.perf_counter() - start}, {model.cbGet(gp.GRB.Callback.MIPSOL_OBJ)}\n"
             )
 
     return dump_solution
@@ -86,7 +83,7 @@ def solve(
 
     status = model.getAttr("Status")
     sol_count = model.getAttr("SolCount")
-    print("Search time: {}s".format(model.getAttr("Runtime")))
+    print(f"Search time: {model.getAttr('Runtime')}s")
 
     if status == gp.GRB.INFEASIBLE:
         print("infeasible")
@@ -109,14 +106,14 @@ def solve(
                     robots = node_weights[i] + sum(
                         edge_weights[u, v] for (u, v) in delta
                     )
-                    print("sweep {}, robots: {}".format(i, robots))
+                    print(f"sweep {i}, robots: {robots}")
                     clean.add(i)
                     solution.append(i)
                     continue
 
         cost = round(model.objVal)
         print(solution)
-        print("cost: {}".format(cost))
+        print(f"cost: {cost}")
         best_bound = model.getAttr("ObjBound")
         gap = model.getAttr("MIPGap")
 
@@ -127,16 +124,16 @@ def solve(
         if validation_result:
             print("The solution is valid.")
             if status == gp.GRB.OPTIMAL:
-                print("optimal cost: {}".format(model.objVal))
+                print(f"optimal cost: {model.objVal}")
             else:
-                print("gap: {}".format(model.getAttr("MIPGap")))
-                print("best bound: {}".format(model.getAttr("ObjBound")))
+                print(f"gap: {model.getAttr('MIPGap')}")
+                print(f"best bound: {model.getAttr('ObjBound')}")
         else:
             # It is possible that the objective cost does not match the actual cost
             # as the constraints are inequalities.
             print("The solution is invalid.")
-            print("gap: {}".format(gap))
-            print("best bound: {}".format(best_bound))
+            print(f"gap: {gap}")
+            print(f"best bound: {best_bound}")
 
 
 if __name__ == "__main__":

@@ -45,43 +45,27 @@ def compute_min_distance_from(nodes, edges):
     return result
 
 
-def create_didp(n, nodes, edges, capacity, demand, k, use_bound=False):
-    output_lines = [
-        "object_numbers:",
-        "      customer: {}".format(n),
-        "target:",
-        "      unvisited: [ " + ", ".join([str(i) for i in range(1, n)]) + " ]",
-        "      location: 0",
-        "      load: 0",
-        "      vehicles: 1",
-        "table_values:",
-        "      max_vehicles: {}".format(k),
-        "      capacity: {}".format(capacity),
-        "      demand : { "
-        + ", ".join(["{}: {}".format(i - 1, demand[i]) for i in nodes])
-        + " }",
-        "      distance:",
-        "            {",
-    ]
-    for i, j in edges:
-        output_lines.append(
-            "                  [{}, {}]: {},".format(i - 1, j - 1, edges[i, j])
-        )
-    output_lines.append("      }")
-
-    if use_bound:
-        min_distance_to = compute_min_distance_to(nodes, edges)
-        min_distance_from = compute_min_distance_from(nodes, edges)
-        output_lines += [
-            "      min_distance_to: { "
-            + ", ".join("{}: {}".format(i - 1, min_distance_to[i]) for i in nodes)
-            + " }",
-            "      min_distance_from: { "
-            + ", ".join("{}: {}".format(i - 1, min_distance_from[i]) for i in nodes)
-            + " }",
-        ]
-
-    return "\n".join(output_lines)
+def create_didp(n, nodes, edges, capacity, demand, k, blind=False):
+    indices = {v: i for i, v in enumerate(nodes)}
+    depot = nodes[0]
+    matrix = [[edges.get((i, j), 0) for j in nodes] for i in nodes]
+    problem = dict(
+        object_numbers=dict(customer=n),
+        target=dict(unvisited=list(range(1, n)), location=0, load=0, vehicles=1),
+        table_values=dict(
+            max_vehicles=k,
+            capacity=capacity,
+            demand={indices[i]: demand[i] for i in nodes},
+            distance={(i, j): matrix[i][j] for i in range(n) for j in range(n)},
+            mst_distance={
+                (i, j): min(matrix[i][j], matrix[i][0] + matrix[0][j])
+                for i in range(n)
+                for j in range(n)
+            },
+            min_return=min((edges[i, depot] for i in nodes[1:]), default=0),
+        ),
+    )
+    return yaml.safe_dump(problem, sort_keys=False)
 
 
 if __name__ == "__main__":
@@ -91,8 +75,7 @@ if __name__ == "__main__":
     parser.add_argument("--config-path", "-c", type=str)
     parser.add_argument("--time-limit", default=None, type=int)
     parser.add_argument("--memory-limit", default=None, type=int)
-    parser.add_argument("--use-bound", action="store_true")
-    parser.add_argument("--non-zero-base-case", action="store_true")
+    parser.add_argument("--blind", action="store_true")
     args = parser.parse_args()
 
     name = os.path.basename(args.input)
@@ -108,27 +91,17 @@ if __name__ == "__main__":
         depot,
         _,
     ) = read_tsplib.read_cvrp(args.input)
-    problem = create_didp(
-        n, nodes, edges, capacity, demand, k, use_bound=args.use_bound
-    )
+    problem = create_didp(n, nodes, edges, capacity, demand, k, blind=args.blind)
 
     with open("problem.yaml", "w") as f:
         f.write(problem)
 
-    domain_file = (
-        "domain_non_zero_base_bound.yaml"
-        if args.non_zero_base_case and args.use_bound
-        else "domain_non_zero_base.yaml"
-        if args.non_zero_base_case
-        else "domain_bound.yaml"
-        if args.use_bound
-        else "domain.yaml"
-    )
+    domain_file = "domain_blind.yaml" if args.blind else "domain.yaml"
     domain_path = os.path.join(os.path.dirname(__file__), domain_file)
 
     if args.didp_path is not None:
         fn = get_limit_resource(args.time_limit, args.memory_limit)
-        print("Preprocessing time: {}s".format(time.perf_counter() - start))
+        print(f"Preprocessing time: {time.perf_counter() - start}s")
         subprocess.run(
             [args.didp_path, domain_path, "problem.yaml", args.config_path],
             preexec_fn=fn,
@@ -145,14 +118,11 @@ if __name__ == "__main__":
                 solution.append(transition["parameters"]["to"] + 1)
             if transition["name"] == "visit":
                 solution.append(transition["parameters"]["to"] + 1)
-            if transition["name"] == "return":
-                solution.append(depot)
 
-        if args.non_zero_base_case:
-            solution.append(depot)
+        solution.append(depot)
 
         print(solution)
-        print("cost: {}".format(cost))
+        print(f"cost: {cost}")
 
         validation_result = read_tsplib.validate_cvrp(
             n, nodes, edges, capacity, demand, depot, solution, cost, k=k
@@ -163,4 +133,4 @@ if __name__ == "__main__":
             print("The solution is invalid.")
 
     end = time.perf_counter()
-    print("Execution time: {}s".format(end - start))
+    print(f"Execution time: {end - start}s")

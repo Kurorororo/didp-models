@@ -1,12 +1,10 @@
-import os
 import argparse
+import os
 import random
-
 import subprocess
 
-import networkx as nx
-
 import generate_instances
+import networkx as nx
 
 
 def generate_planner_graphs(n_instances, ns, command, output_path):
@@ -65,7 +63,7 @@ if __name__ == "__main__":
     )
 
     for n in args.ns:
-        dirname = "planar_n{}".format(n)
+        dirname = f"planar_n{n}"
         dirpath = os.path.join(args.output_dir, dirname)
         os.makedirs(dirpath, exist_ok=True)
         for i in range(args.n_instances):
@@ -73,6 +71,6 @@ if __name__ == "__main__":
             generate_instances.generate_weights(
                 G, args.node_min, args.node_max, args.edge_min, args.edge_max
             )
-            filename = "seed{}_{}".format(args.seed, i + 1)
+            filename = f"seed{args.seed}_{i + 1}"
             filepath = os.path.join(dirpath, filename)
             generate_instances.write_to_file(G, filepath)

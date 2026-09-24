@@ -31,16 +31,14 @@ def compute_shortest_distance(nodes, edges):
 
 def create_pddl(name, nodes, edges, a, b, redundant_constraints):
     output_lines = [
-        "(define (problem {})".format(name),
+        f"(define (problem {name})",
         "    (:domain TSPTW)",
         "    (:objects",
     ]
 
     output_lines += ["        depot0 - depot"]
     output_lines += [
-        "        "
-        + " ".join(["customer{}".format(c) for c in nodes if c > 0])
-        + " - customer)"
+        "        " + " ".join([f"customer{c}" for c in nodes if c > 0]) + " - customer)"
     ]
     output_lines += [
         "    (:init",
@@ -50,27 +48,25 @@ def create_pddl(name, nodes, edges, a, b, redundant_constraints):
 
     for i in nodes[1:]:
         output_lines += [
-            "        (= (ready-time customer{}) {})".format(i, a[i]),
-            "        (= (due-date customer{}) {})".format(i, b[i]),
+            f"        (= (ready-time customer{i}) {a[i]})",
+            f"        (= (due-date customer{i}) {b[i]})",
         ]
 
     for i in nodes:
         if i == 0:
             output_lines += [
-                "        (= (travel-cost depot0 customer{}) {})".format(j, edges[0, j])
+                f"        (= (travel-cost depot0 customer{j}) {edges[0, j]})"
                 for j in nodes
                 if j > 0
             ]
         else:
             output_lines += [
-                "        (= (travel-cost customer{} depot0) {})".format(i, edges[i, 0])
+                f"        (= (travel-cost customer{i} depot0) {edges[i, 0]})"
             ]
             for j in nodes[1:]:
                 if i != j:
                     output_lines += [
-                        "        (= (travel-cost customer{} customer{}) {})".format(
-                            i, j, edges[i, j]
-                        )
+                        f"        (= (travel-cost customer{i} customer{j}) {edges[i, j]})"
                     ]
 
     if redundant_constraints:
@@ -79,24 +75,18 @@ def create_pddl(name, nodes, edges, a, b, redundant_constraints):
         for i in nodes:
             if i == 0:
                 output_lines += [
-                    "        (= (shortest-cost depot0 customer{}) {})".format(
-                        j, shortest_distance[0, j]
-                    )
+                    f"        (= (shortest-cost depot0 customer{j}) {shortest_distance[0, j]})"
                     for j in nodes
                     if j > 0
                 ]
             else:
                 output_lines += [
-                    "        (= (shortest-cost customer{} depot0) {})".format(
-                        i, shortest_distance[i, 0]
-                    )
+                    f"        (= (shortest-cost customer{i} depot0) {shortest_distance[i, 0]})"
                 ]
                 for j in nodes[1:]:
                     if i != j:
                         output_lines += [
-                            "        (= (shortest-cost customer{} customer{}) {})".format(
-                                i, j, shortest_distance[i, j]
-                            )
+                            f"        (= (shortest-cost customer{i} customer{j}) {shortest_distance[i, j]})"
                         ]
 
     output_lines += ["        (= total-cost 0))"]
@@ -105,7 +95,7 @@ def create_pddl(name, nodes, edges, a, b, redundant_constraints):
     output_lines += ["         (loc depot0)"]
 
     for i in nodes[1:]:
-        output_lines += ["            (visited customer{})".format(i)]
+        output_lines += [f"            (visited customer{i})"]
 
     output_lines += ["        ))", "    (:metric minimize total-cost))"]
 

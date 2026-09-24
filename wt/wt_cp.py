@@ -4,9 +4,7 @@ import argparse
 import time
 
 import docplex.cp.model as cp
-
 import read_single_machine_scheduling
-
 
 start = time.perf_counter()
 
@@ -74,9 +72,7 @@ def solve(
 
                 if is_new_solution:
                     f.write(
-                        "{}, {}\n".format(
-                            time.perf_counter() - start, result.get_objective_value()
-                        )
+                        f"{time.perf_counter() - start}, {result.get_objective_value()}\n"
                     )
 
     solution = None
@@ -153,7 +149,7 @@ if __name__ == "__main__":
 
     if solution is not None:
         print(solution)
-        print("cost: {}".format(cost))
+        print(f"cost: {cost}")
 
         validation_result, cost = read_single_machine_scheduling.verify_wt(
             solution,
@@ -167,12 +163,12 @@ if __name__ == "__main__":
         if validation_result:
             print("The solution is valid.")
             if is_optimal:
-                print("optimal cost: {}".format(cost))
+                print(f"optimal cost: {cost}")
             else:
                 if gap is not None:
-                    print("gap: {}".format(gap))
+                    print(f"gap: {gap}")
 
                 if best_bound is not None:
-                    print("best bound: {}".format(best_bound))
+                    print(f"best bound: {best_bound}")
         else:
             print("The solution is invalid")

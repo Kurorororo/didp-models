@@ -12,31 +12,35 @@ python3 mpdtsp_mip.py instance.txt --history history.csv --time-out 1800
 python3 mpdtsp_cp.py instance.txt --history history.csv --time-out 1800
 ```
 
-## Kuroiwa and Beck 2023 Anytime
+## DIDPPy v0.11.1
 
-```python3
-python3 mpdtsp_to_didp.py instance.txt -d didp-yaml -c ../configs/cabs.yaml --memory-limit 8192
+Run from this directory with DIDPPy 0.11.1 installed (see the [root README](../README.md)).
+
+```sh
+python mpdtsp_didp.py instance.txt --config CABS --time-out 1800 --history history.csv
 ```
 
-- `-d`: didp-yaml binary
-- `-c`: config YAML file
+`--config` accepts `CAASDy`, `CABS`, or `LNBS`. `--threads` and
+`--initial-beam-size` configure CABS/LNBS; parallel search uses the default HD2
+method. `--seed` controls LNBS randomization.
 
-## Kuroiwa and Beck 2023 LNBS
+## YAML-DyPDL
 
-```python3
-python3 mpdtsp_didp.py instance.txt --config LNBS --history history.csv --time-out 1800
+```sh
+python mpdtsp_to_didp.py instance.txt -d didp-yaml -c ../configs/cabs.yaml --memory-limit 8192
 ```
 
-- `--config`: Solver name
+Use `../configs/caasdy.yaml` or `../configs/lnbs.yaml` to change the solver.
+Omit `-d` to write `problem.yaml` and `solver-config.yaml` without solving it.
 
-## Journal Submission
-
-```python3
-python3 mpdtsp_to_didp.py instance.txt --non-zero-base-case -d didp-yaml -c ../configs/cabs.yaml --memory-limit 8192
-```
-
-### CABS/0
-
-```python3
-python3 mpdtsp_to_didp.py instance.txt --blind -d didp-yaml -c ../configs/cabs.yaml --memory-limit 8192
-```
+Both formulations preserve capacity/precedence edge preprocessing and charge
+the final arc in the base case. The default dual bound is an MST over the current
+location and unvisited vertices plus a minimum final-arc cost. Unavailable MST
+edges receive a finite penalty exceeding every feasible completion cost, so
+disconnected infeasible suffixes do not cause an MST evaluation panic.
+The same integer sentinel, `n * max(filtered arc cost) + 1`, is supplied as the
+initial primal bound to all three solvers. A dual bound reaching this value
+therefore proves infeasibility. Every feasible tour costs strictly less than it.
+The YAML converter writes an instance-specific `solver-config.yaml` with this
+cutoff, preserving a tighter primal bound if provided in the input configuration.
+The YAML converter retains `--blind`.

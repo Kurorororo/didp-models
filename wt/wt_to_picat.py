@@ -30,16 +30,13 @@ def generate_picat_input(processing_times, due_dates, weights, before):
         [
             str(len(processing_times)),
         ]
-        + [
-            "{} {} {}".format(p, d, w)
-            for (p, d, w) in zip(processing_times, due_dates, weights)
-        ]
+        + [f"{p} {d} {w}" for (p, d, w) in zip(processing_times, due_dates, weights)]
         + [str(sum(len(b) for b in before))]
     )
 
     for i, b in enumerate(before):
         for j in b:
-            lines.append("{} {}".format(j + 1, i + 1))
+            lines.append(f"{j + 1} {i + 1}")
 
     return "\n".join(lines)
 
@@ -83,7 +80,7 @@ if __name__ == "__main__":
 
     if args.picat_path is not None:
         fn = get_limit_resource(args.time_limit, args.memory_limit)
-        print("Preprocessing time: {}s".format(time.perf_counter() - start))
+        print(f"Preprocessing time: {time.perf_counter() - start}s")
         dirname = os.path.dirname(__file__)
         subprocess.run(
             [args.picat_path, os.path.join(dirname, "wt_bb"), "problem.txt"],
@@ -91,4 +88,4 @@ if __name__ == "__main__":
         )
 
     end = time.perf_counter()
-    print("Execution time: {}s".format(end - start))
+    print(f"Execution time: {end - start}s")

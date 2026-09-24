@@ -33,9 +33,9 @@ def create_didp(problem_name, item_to_patterns, pattern_to_items):
     )
 
     output_lines = [
-        "problem: {}".format(problem_name),
+        f"problem: {problem_name}",
         "object_numbers:",
-        "      item: {}".format(m),
+        f"      item: {m}",
         "target:",
         "      remaining: [ " + ", ".join(str(i) for i in range(m)) + " ]",
         "      opened: []",
@@ -44,7 +44,7 @@ def create_didp(problem_name, item_to_patterns, pattern_to_items):
     ]
     for i in range(m):
         output_lines.append(
-            "                  {}: [ ".format(i)
+            f"                  {i}: [ "
             + ", ".join(str(j) for j in item_to_neighbors[i])
             + " ],"
         )
@@ -73,7 +73,7 @@ if __name__ == "__main__":
 
     if args.didp_path is not None:
         fn = get_limit_resource(args.time_limit, args.memory_limit)
-        print("Preprocessing time: {}s".format(time.perf_counter() - start))
+        print(f"Preprocessing time: {time.perf_counter() - start}s")
         subprocess.run(
             [args.didp_path, domain_path, "problem.yaml", args.config_path],
             preexec_fn=fn,
@@ -91,7 +91,7 @@ if __name__ == "__main__":
         print(solution)
 
         if cost is not None:
-            print("cost: {}".format(cost))
+            print(f"cost: {cost}")
 
             validation_result = read_mosp.validate(
                 item_to_patterns, pattern_to_items, solution, cost
@@ -103,4 +103,4 @@ if __name__ == "__main__":
                 print("The solution is invalid.")
 
     end = time.perf_counter()
-    print("Execution time: {}s".format(end - start))
+    print(f"Execution time: {end - start}s")

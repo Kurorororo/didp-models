@@ -69,9 +69,7 @@ def read_wt_prec(filename):
 def compute_completion_times(solution, processing_times, before=None):
     if len(solution) != len(processing_times):
         print(
-            "The length of the solution {} mismatches the actual length {}".format(
-                len(solution), len(processing_times)
-            )
+            f"The length of the solution {len(solution)} mismatches the actual length {len(processing_times)}"
         )
 
     completion_times = [0 for _ in solution]
@@ -80,19 +78,15 @@ def compute_completion_times(solution, processing_times, before=None):
 
     for j in solution:
         if j < 0 or j >= len(processing_times):
-            print("No such job {}".format(j))
+            print(f"No such job {j}")
             return None
 
         if j in scheduled:
-            print("Job {} is already scheduled".format(j))
+            print(f"Job {j} is already scheduled")
             return None
 
         if before is not None and len(before[j] - scheduled) > 0:
-            print(
-                "Predecessors {} for job {} are not scheduled".format(
-                    before[j] - scheduled, j
-                )
-            )
+            print(f"Predecessors {before[j] - scheduled} for job {j} are not scheduled")
             return None
 
         t += processing_times[j]
@@ -118,9 +112,7 @@ def verify_wt(solution, processing_times, due_dates, weights, before=None, cost=
     if cost is not None:
         if actual_cost != cost:
             print(
-                "The cost of the solution {} mismatches the actual cost {}".format(
-                    cost, actual_cost
-                )
+                f"The cost of the solution {cost} mismatches the actual cost {actual_cost}"
             )
             return False, None
 
@@ -145,9 +137,7 @@ def verify_max_wt(
     if cost is not None:
         if actual_cost != cost:
             print(
-                "The cost of the solution {} mismatches the actual cost {}".format(
-                    cost, actual_cost
-                )
+                f"The cost of the solution {cost} mismatches the actual cost {actual_cost}"
             )
             return False, None
 
@@ -178,9 +168,7 @@ def verify_wet(
 
     if actual_cost != cost:
         print(
-            "The cost of the solution {} mismatches the actual cost {}".format(
-                cost, actual_cost
-            )
+            f"The cost of the solution {cost} mismatches the actual cost {actual_cost}"
         )
         return False
 
@@ -227,11 +215,14 @@ def extract_precedence_for_wt_prec(processing_times, due_dates, weights, before,
                     tmp_before[j].add(i)
                     path_length = compute_longest_path(jobs, tmp_before)
                     gamma = [
-                        (path_length[k, l], (k, l))
+                        (path_length[k, successor_job], (k, successor_job))
                         for k in (before[i] - new_before[j]) | set([i])
-                        for l in (after[j] - new_after[i]) | set([j])
+                        for successor_job in (after[j] - new_after[i]) | set([j])
                     ]
-                    pairs = [(k, l) for _, (k, l) in sorted(gamma, reverse=True)]
+                    pairs = [
+                        (k, successor_job)
+                        for _, (k, successor_job) in sorted(gamma, reverse=True)
+                    ]
                     tmp_before, tmp_after = frame1(
                         pairs,
                         processing_times,
@@ -290,12 +281,18 @@ def frame1(pairs, processing_times, due_dates, weights, before, after):
     new_before = copy.deepcopy(before)
     new_after = copy.deepcopy(after)
 
-    for k, l in pairs:
+    for k, successor_job in pairs:
         if check_kanet_conditions(
-            k, l, processing_times, due_dates, weights, new_before, new_after
+            k,
+            successor_job,
+            processing_times,
+            due_dates,
+            weights,
+            new_before,
+            new_after,
         ):
-            new_before[l].add(k)
-            new_after[k].add(l)
+            new_before[successor_job].add(k)
+            new_after[k].add(successor_job)
         else:
             return None, None
 

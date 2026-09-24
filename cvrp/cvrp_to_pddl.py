@@ -10,34 +10,32 @@ import read_tsplib
 
 def generate_problem(name, nodes, edges, capacity, demand, depot, k):
     output_lines = [
-        "(define (problem {})".format(name),
+        f"(define (problem {name})",
         "    (:domain CVRP)",
         "    (:objects",
-        "        "
-        + " ".join(["c{}".format(c) for c in nodes if c != depot])
-        + " - customer)",
+        "        " + " ".join([f"c{c}" for c in nodes if c != depot]) + " - customer)",
         "    (:init",
         "        (= (total-cost) 0)",
         "        (loc d1)",
         "        (= (load) 0)",
         "        (= (vehicles) 1)",
-        "        (= (max_vehicles) {})".format(k),
-        "        (= (capacity) {})".format(capacity),
+        f"        (= (max_vehicles) {k})",
+        f"        (= (capacity) {capacity})",
     ]
 
     for i in nodes:
         if i != depot:
-            output_lines.append("        (= (demand c{}) {})".format(i, demand[i]))
+            output_lines.append(f"        (= (demand c{i}) {demand[i]})")
 
     for i in nodes:
-        c_i = "d1" if i == depot else "c{}".format(i)
+        c_i = "d1" if i == depot else f"c{i}"
         for j in nodes:
             if i == j:
                 continue
-            c_j = "d1" if j == depot else "c{}".format(j)
+            c_j = "d1" if j == depot else f"c{j}"
             if (i, j) in edges:
                 output_lines.append(
-                    "        (= (travel-cost {} {}) {})".format(c_i, c_j, edges[i, j])
+                    f"        (= (travel-cost {c_i} {c_j}) {edges[i, j]})"
                 )
 
     for i in nodes:
@@ -48,16 +46,14 @@ def generate_problem(name, nodes, edges, capacity, demand, depot, k):
                 continue
             if (i, j) in edges:
                 output_lines.append(
-                    "        (= (travel-cost-via-depot c{} c{}) {})".format(
-                        i, j, edges[i, depot] + edges[depot, j]
-                    )
+                    f"        (= (travel-cost-via-depot c{i} c{j}) {edges[i, depot] + edges[depot, j]})"
                 )
 
     output_lines += ["    )", "    (:goal", "         (and", "             (loc d1)"]
 
     for i in nodes:
         if i != depot:
-            output_lines += ["             (visited c{})".format(i)]
+            output_lines += [f"             (visited c{i})"]
 
     output_lines += ["        )", "    )", "    (:metric minimize total-cost)", ")"]
 

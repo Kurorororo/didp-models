@@ -13,7 +13,7 @@ def generate_domain(number_of_tasks, predecessors, separate_open_station=False):
         "    (:requirements :strips :typing :fluents :negative-preconditions)",
         "    (:types task)",
         "    (:constants "
-        + " ".join("t{}".format(i) for i in range(1, number_of_tasks + 1))
+        + " ".join(f"t{i}" for i in range(1, number_of_tasks + 1))
         + " - task)",
         "    (:predicates (completed ?t - task))",
         "    (:functions (cycle-time) (idle-time) (time ?t - task) (total-cost))",
@@ -29,27 +29,27 @@ def generate_domain(number_of_tasks, predecessors, separate_open_station=False):
         ]
     for i in range(1, number_of_tasks + 1):
         lines += [
-            "    (:action do-t{}".format(i),
+            f"    (:action do-t{i}",
             "        :parameters ()",
-            "        :precondition (and (not (completed t{})) ".format(i)
-            + "(<= (time t{}) (idle-time))".format(i)
-            + " ".join("(completed t{})".format(j) for j in predecessors[i])
+            f"        :precondition (and (not (completed t{i})) "
+            + f"(<= (time t{i}) (idle-time))"
+            + " ".join(f"(completed t{j})" for j in predecessors[i])
             + ")",
-            "        :effect (and (completed t{}) ".format(i)
-            + "(decrease (idle-time) (time t{}))".format(i)
+            f"        :effect (and (completed t{i}) "
+            + f"(decrease (idle-time) (time t{i}))"
             + " (increase (total-cost) 0))",
             "    )",
         ]
         if not separate_open_station:
             lines += [
-                "    (:action open-station-and-do-t{}".format(i),
+                f"    (:action open-station-and-do-t{i}",
                 "        :parameters ()",
-                "        :precondition (and (not (completed t{})) ".format(i)
-                + "(> (time t{}) (idle-time))".format(i)
-                + " ".join("(completed t{})".format(j) for j in predecessors[i])
+                f"        :precondition (and (not (completed t{i})) "
+                + f"(> (time t{i}) (idle-time))"
+                + " ".join(f"(completed t{j})" for j in predecessors[i])
                 + ")",
-                "        :effect (and (completed t{}) ".format(i)
-                + " (assign (idle-time) (- (cycle-time) (time t{})))".format(i)
+                f"        :effect (and (completed t{i}) "
+                + f" (assign (idle-time) (- (cycle-time) (time t{i})))"
                 + " (increase (total-cost) 1))",
                 "    )",
             ]
@@ -60,18 +60,18 @@ def generate_domain(number_of_tasks, predecessors, separate_open_station=False):
 
 def generate_problem(name, number_of_tasks, cycle_time, task_times):
     lines = [
-        "(define (problem {})".format(name),
+        f"(define (problem {name})",
         "    (:domain SALBP1)",
         "    (:init",
         "        (= (total-cost) 0)",
         "        (= (idle-time) 0)",
-        "        (= (cycle-time) {})".format(cycle_time),
+        f"        (= (cycle-time) {cycle_time})",
     ]
     for i in range(1, number_of_tasks + 1):
-        lines += ["        (= (time t{}) {})".format(i, task_times[i])]
+        lines += [f"        (= (time t{i}) {task_times[i]})"]
     lines += ["    )", "    (:goal (and"]
     for i in range(1, number_of_tasks + 1):
-        lines += ["        (completed t{})".format(i)]
+        lines += [f"        (completed t{i})"]
     lines += ["    ))", "    (:metric minimize (total-cost))", ")"]
 
     return "\n".join(lines)

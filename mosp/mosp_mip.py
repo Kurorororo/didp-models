@@ -13,16 +13,20 @@ def get_callback(file):
     def dump_solution(model, where):
         if where == gp.GRB.Callback.MIPSOL:
             file.write(
-                "{}, {}\n".format(
-                    time.perf_counter() - start,
-                    model.cbGet(gp.GRB.Callback.MIPSOL_OBJ),
-                )
+                f"{time.perf_counter() - start}, {model.cbGet(gp.GRB.Callback.MIPSOL_OBJ)}\n"
             )
 
     return dump_solution
 
 
-def solve(item_to_patterns, pattern_to_items, time_limit=None, threads=1, history=None, memory_limit=None):
+def solve(
+    item_to_patterns,
+    pattern_to_items,
+    time_limit=None,
+    threads=1,
+    history=None,
+    memory_limit=None,
+):
     item_to_neighbors = read_mosp.compute_item_to_neighbors(
         item_to_patterns, pattern_to_items
     )
@@ -69,7 +73,7 @@ def solve(item_to_patterns, pattern_to_items, time_limit=None, threads=1, histor
 
     status = model.getAttr("Status")
     sol_count = model.getAttr("SolCount")
-    print("Search time: {}s".format(model.getAttr("Runtime")))
+    print(f"Search time: {model.getAttr('Runtime')}s")
 
     if status == gp.GRB.INFEASIBLE:
         print("infeasible")
@@ -83,7 +87,7 @@ def solve(item_to_patterns, pattern_to_items, time_limit=None, threads=1, histor
         solution = read_mosp.item_order_to_pattern_order(item_to_patterns, item_order)
         cost = round(model.objVal)
         print(solution)
-        print("cost: {}".format(cost))
+        print(f"cost: {cost}")
 
         validation_result = read_mosp.validate(
             item_to_patterns, pattern_to_items, solution, cost
@@ -92,16 +96,16 @@ def solve(item_to_patterns, pattern_to_items, time_limit=None, threads=1, histor
         if validation_result:
             print("The solution is valid.")
             if status == gp.GRB.OPTIMAL:
-                print("optimal cost: {}".format(cost))
+                print(f"optimal cost: {cost}")
             else:
-                print("gap: {}".format(model.getAttr("MIPGap")))
-                print("best bound: {}".format(model.getAttr("ObjBound")))
+                print(f"gap: {model.getAttr('MIPGap')}")
+                print(f"best bound: {model.getAttr('ObjBound')}")
         else:
             # It is possible that the objective cost does not match the actual cost
             # as the constraints are inequalities.
             print("The solution is invalid.")
-            print("gap: {}".format(model.getAttr("MIPGap")))
-            print("best bound: {}".format(model.getAttr("ObjBound")))
+            print(f"gap: {model.getAttr('MIPGap')}")
+            print(f"best bound: {model.getAttr('ObjBound')}")
 
 
 if __name__ == "__main__":

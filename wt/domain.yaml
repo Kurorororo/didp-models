@@ -1,48 +1,49 @@
 objects:
-  - job
+- job
 state_variables:
-  - name: scheduled
-    type: set
-    object: job
+- name: scheduled
+  type: set
+  object: job
 tables:
-  - name: all_jobs
-    type: set
-    object: job
-  - name: processing_time
-    type: integer
-    args:
-      - job
-  - name: due_date
-    type: integer
-    args:
-      - job
-  - name: weight
-    type: integer
-    args:
-      - job
-  - name: predecessors
-    type: set
-    object: job
-    args:
-      - job
+- name: all_jobs
+  type: set
+  object: job
+- name: processing_time
+  type: integer
+  args:
+  - job
+- name: due_date
+  type: integer
+  args:
+  - job
+- name: weight
+  type: integer
+  args:
+  - job
+- name: predecessors
+  type: set
+  object: job
+  args:
+  - job
 base_cases:
-  - - (= scheduled all_jobs)
+- - (= scheduled all_jobs)
 reduce: min
 cost_type: integer
 transitions:
-  - name: schedule
-    parameters:
-      - name: j
-        object: job
-    preconditions:
-      - (not (is_in j scheduled))
-      - (is_empty (difference (predecessors j) scheduled))
-    effect:
-      scheduled: (add j scheduled)
-    cost: >
-      (+ cost
-         (* (weight j)
-            (max 0 (- (+ (sum processing_time scheduled) (processing_time j))
-                      (due_date j)))))
+- name: schedule
+  parameters:
+  - name: j
+    object: job
+  preconditions:
+  - (not (is_in j scheduled))
+  - (is_empty (difference (predecessors j) scheduled))
+  effect:
+    scheduled: (add j scheduled)
+  cost: "(+ cost\n   (* (weight j)\n      (max 0 (- (+ current_time (processing_time j))\n           \
+    \     (due_date j)))))\n"
 dual_bounds:
-  - 0
+- 0
+state_functions:
+- name: current_time
+  type: integer
+  expression: (sum processing_time scheduled)

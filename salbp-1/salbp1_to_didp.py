@@ -31,24 +31,22 @@ def generate_problem(
 ):
     lines = [
         "object_numbers:",
-        "      task: {}".format(number_of_tasks),
+        f"      task: {number_of_tasks}",
         "target:",
         "      uncompleted: [ "
         + ", ".join([str(i) for i in range(number_of_tasks)])
         + " ]",
         "      idle-time: 0",
         "table_values:",
-        "      cycle-time: {}".format(cycle_time),
+        f"      cycle-time: {cycle_time}",
         "      time: { "
-        + ", ".join(
-            ["{}: {}".format(i, task_times[i + 1]) for i in range(number_of_tasks)]
-        )
+        + ", ".join([f"{i}: {task_times[i + 1]}" for i in range(number_of_tasks)])
         + " }",
         "      predecessors: {",
     ]
     for i in range(number_of_tasks):
         lines += [
-            "            {}: [ ".format(i)
+            f"            {i}: [ "
             + ", ".join([str(j - 1) for j in predecessors[i + 1]])
             + " ],"
         ]
@@ -59,7 +57,7 @@ def generate_problem(
             "      lb2-weight1: { "
             + ", ".join(
                 [
-                    "{}: {}".format(i, 1)
+                    f"{i}: {1}"
                     for i in range(number_of_tasks)
                     if task_times[i + 1] > cycle_time / 2
                 ]
@@ -68,7 +66,7 @@ def generate_problem(
             "      lb2-weight2: { "
             + ", ".join(
                 [
-                    "{}: {}".format(i, 0.5)
+                    f"{i}: {0.5}"
                     for i in range(number_of_tasks)
                     if task_times[i + 1] == cycle_time / 2
                 ]
@@ -77,13 +75,13 @@ def generate_problem(
             "      lb3-weight: { "
             + ", ".join(
                 [
-                    "{}: {}".format(i, 1.0)
+                    f"{i}: {1.0}"
                     if task_times[i + 1] > cycle_time * 2 / 3
-                    else "{}: {}".format(i, 2 / 3 // 0.001 / 1000)
+                    else f"{i}: {2 / 3 // 0.001 / 1000}"
                     if task_times[i + 1] == cycle_time * 2 / 3
-                    else "{}: {}".format(i, 0.5)
+                    else f"{i}: {0.5}"
                     if task_times[i + 1] > cycle_time / 3
-                    else "{}: {}".format(i, 1 / 3 // 0.001 / 1000)
+                    else f"{i}: {1 / 3 // 0.001 / 1000}"
                     for i in range(number_of_tasks)
                     if task_times[i + 1] >= cycle_time / 3
                 ]
@@ -120,7 +118,7 @@ if __name__ == "__main__":
 
     if args.didp_path is not None:
         fn = get_limit_resource(args.time_limit, args.memory_limit)
-        print("Preprocessing time: {}s".format(time.perf_counter() - start))
+        print(f"Preprocessing time: {time.perf_counter() - start}s")
         subprocess.run(
             [args.didp_path, domain_path, "problem.yaml", args.config_path],
             preexec_fn=fn,
@@ -138,7 +136,7 @@ if __name__ == "__main__":
                 solution[-1].append(transition["parameters"]["t"] + 1)
 
         print(solution)
-        print("cost: {}".format(cost))
+        print(f"cost: {cost}")
 
         validation_result = read_salbp1.validate(
             number_of_tasks, cycle_time, task_times, predecessors, solution, cost
@@ -149,4 +147,4 @@ if __name__ == "__main__":
             print("The solution is invalid.")
 
     end = time.perf_counter()
-    print("Execution time: {}s".format(end - start))
+    print(f"Execution time: {end - start}s")

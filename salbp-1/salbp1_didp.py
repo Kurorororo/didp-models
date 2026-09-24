@@ -50,7 +50,7 @@ def create_model(number_of_tasks, cycle_time, task_times, predecessors):
     name_to_task = {}
 
     for i in range(number_of_tasks):
-        name = "schedule {}".format(i)
+        name = f"schedule {i}"
         name_to_task[name] = i + 1
         t = dp.Transition(
             name=name,
@@ -105,78 +105,38 @@ def solve(
     seed=2023,
     initial_beam_size=1,
     threads=1,
-    parallel_type=0,
 ):
-    if solver_name == "LNBS":
-        if parallel_type == 2:
-            parallelization_method = dp.BeamParallelizationMethod.Sbs
-        elif parallel_type == 1:
-            parallelization_method = dp.BeamParallelizationMethod.Hdbs1
-        else:
-            parallelization_method = dp.BeamParallelizationMethod.Hdbs2
-
+    options = dict(time_limit=time_limit, quiet=False)
+    if solver_name == "CAASDy":
+        solver = dp.CAASDy(model, **options)
+    elif solver_name == "CABS":
+        solver = dp.CABS(
+            model, initial_beam_size=initial_beam_size, threads=threads, **options
+        )
+    elif solver_name == "LNBS":
         solver = dp.LNBS(
             model,
             initial_beam_size=initial_beam_size,
+            threads=threads,
             seed=seed,
-            parallelization_method=parallelization_method,
-            threads=threads,
-            time_limit=time_limit,
-            quiet=False,
+            **options,
         )
-    elif solver_name == "DD-LNS":
-        solver = dp.DDLNS(model, time_limit=time_limit, quiet=False, seed=seed)
-    elif solver_name == "FR":
-        solver = dp.ForwardRecursion(model, time_limit=time_limit, quiet=False)
-    elif solver_name == "BrFS":
-        solver = dp.BreadthFirstSearch(model, time_limit=time_limit, quiet=False)
-    elif solver_name == "CAASDy":
-        solver = dp.CAASDy(model, time_limit=time_limit, quiet=False)
-    elif solver_name == "DFBB":
-        solver = dp.DFBB(model, time_limit=time_limit, quiet=False)
-    elif solver_name == "CBFS":
-        solver = dp.CBFS(model, time_limit=time_limit, quiet=False)
-    elif solver_name == "ACPS":
-        solver = dp.ACPS(model, time_limit=time_limit, quiet=False)
-    elif solver_name == "APPS":
-        solver = dp.APPS(model, time_limit=time_limit, quiet=False)
-    elif solver_name == "DBDFS":
-        solver = dp.DBDFS(model, time_limit=time_limit, quiet=False)
     else:
-        if parallel_type == 2:
-            parallelization_method = dp.BeamParallelizationMethod.Sbs
-        elif parallel_type == 1:
-            parallelization_method = dp.BeamParallelizationMethod.Hdbs1
-        else:
-            parallelization_method = dp.BeamParallelizationMethod.Hdbs2
+        raise ValueError(f"Unknown solver: {solver_name}")
 
-        solver = dp.CABS(
-            model,
-            initial_beam_size=initial_beam_size,
-            threads=threads,
-            parallelization_method=parallelization_method,
-            time_limit=time_limit,
-            quiet=False,
-        )
+    with open(history, "w") as f:
+        is_terminated = False
 
-    if solver_name == "FR":
-        solution = solver.search()
-    else:
-        with open(history, "w") as f:
-            is_terminated = False
+        while not is_terminated:
+            solution, is_terminated = solver.search_next()
 
-            while not is_terminated:
-                solution, is_terminated = solver.search_next()
+            if solution.cost is not None:
+                f.write(f"{time.perf_counter() - start}, {solution.cost}\n")
+                f.flush()
 
-                if solution.cost is not None:
-                    f.write(
-                        "{}, {}\n".format(time.perf_counter() - start, solution.cost)
-                    )
-                    f.flush()
-
-    print("Search time: {}s".format(solution.time))
-    print("Expanded: {}".format(solution.expanded))
-    print("Generated: {}".format(solution.generated))
+    print(f"Search time: {solution.time}s")
+    print(f"Expanded: {solution.expanded}")
+    print(f"Generated: {solution.generated}")
 
     if solution.is_infeasible:
         return None, None, None, False, True
@@ -203,11 +163,10 @@ if __name__ == "__main__":
     parser.add_argument("input", type=str)
     parser.add_argument("--time-out", default=1800, type=int)
     parser.add_argument("--history", default="history.csv", type=str)
-    parser.add_argument("--config", default="CABS", type=str)
+    parser.add_argument("--config", choices=["CAASDy", "CABS", "LNBS"], default="CABS")
     parser.add_argument("--seed", default=2023, type=int)
     parser.add_argument("--threads", default=1, type=int)
     parser.add_argument("--initial-beam-size", default=1, type=int)
-    parser.add_argument("--parallel-type", default=0, type=int)
     args = parser.parse_args()
 
     number_of_tasks, cycle_time, task_times, predecessors, _ = read_salbp1.read(
@@ -228,20 +187,19 @@ if __name__ == "__main__":
         seed=args.seed,
         threads=args.threads,
         initial_beam_size=args.initial_beam_size,
-        parallel_type=args.parallel_type,
     )
 
     if is_infeasible:
         print("The problem is infeasible.")
     else:
-        print("best bound: {}".format(bound))
+        print(f"best bound: {bound}")
 
         if cost is not None:
             print(solution)
-            print("cost: {}".format(cost))
+            print(f"cost: {cost}")
 
             if is_optimal:
-                print("optimal cost: {}".format(cost))
+                print(f"optimal cost: {cost}")
 
             validation_result = read_salbp1.validate(
                 number_of_tasks, cycle_time, task_times, predecessors, solution, cost

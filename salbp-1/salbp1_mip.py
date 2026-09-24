@@ -14,10 +14,7 @@ def get_callback(file):
     def dump_solution(model, where):
         if where == gp.GRB.Callback.MIPSOL:
             file.write(
-                "{}, {}\n".format(
-                    time.perf_counter() - start,
-                    model.cbGet(gp.GRB.Callback.MIPSOL_OBJ),
-                )
+                f"{time.perf_counter() - start}, {model.cbGet(gp.GRB.Callback.MIPSOL_OBJ)}\n"
             )
 
     return dump_solution
@@ -105,7 +102,7 @@ def solve(
 
     status = model.getAttr("Status")
     sol_count = model.getAttr("SolCount")
-    print("Search time: {}s".format(model.getAttr("Runtime")))
+    print(f"Search time: {model.getAttr('Runtime')}s")
 
     if status == gp.GRB.INFEASIBLE:
         print("infeasible")
@@ -120,7 +117,7 @@ def solve(
                 solution.append(tasks_in_station)
         cost = round(model.objVal)
         print(solution)
-        print("cost: {}".format(cost))
+        print(f"cost: {cost}")
         validation_result = read_salbp1.validate(
             number_of_tasks, cycle_time, task_times, predecessors, solution, cost
         )
@@ -128,10 +125,10 @@ def solve(
             print("The solution is valid.")
 
             if status == gp.GRB.OPTIMAL:
-                print("optimal cost: {}".format(cost))
+                print(f"optimal cost: {cost}")
             else:
-                print("gap: {}".format(model.getAttr("MIPGap")))
-                print("best bound: {}".format(model.getAttr("ObjBound")))
+                print(f"gap: {model.getAttr('MIPGap')}")
+                print(f"best bound: {model.getAttr('ObjBound')}")
         else:
             print("The solution is invalid.")
 

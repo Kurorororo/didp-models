@@ -7,7 +7,6 @@ import subprocess
 import time
 
 import read_optw
-import yaml
 
 start = time.perf_counter()
 
@@ -37,13 +36,7 @@ def create_picat_input(
     lines = [str(len(vertices))]
 
     for i in vertices:
-        lines.append(
-            "{} {} {}".format(
-                profit[i],
-                opening[i],
-                closing[i],
-            )
-        )
+        lines.append(f"{profit[i]} {opening[i]} {closing[i]}")
 
     for i in vertices:
         line = []
@@ -91,11 +84,11 @@ if __name__ == "__main__":
     if args.picat_path is not None:
         fn = get_limit_resource(args.time_limit, args.memory_limit)
         dirname = os.path.dirname(__file__)
-        print("Preprocessing time: {}s".format(time.perf_counter() - start))
+        print(f"Preprocessing time: {time.perf_counter() - start}s")
         subprocess.run(
             [args.picat_path, os.path.join(dirname, "optw"), "problem.txt"],
             preexec_fn=fn,
         )
 
     end = time.perf_counter()
-    print("Execution time: {}s".format(end - start))
+    print(f"Execution time: {end - start}s")

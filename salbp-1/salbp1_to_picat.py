@@ -27,17 +27,17 @@ def get_limit_resource(time_limit, memory_limit):
 
 def write_picat_input(number_of_tasks, cycle_time, task_times, followers, filepath):
     with open(filepath, "w") as f:
-        f.write("{}\n".format(number_of_tasks))
-        f.write("{}\n".format(cycle_time))
+        f.write(f"{number_of_tasks}\n")
+        f.write(f"{cycle_time}\n")
         f.write(
             " ".join(str(task_times[i]) for i in range(1, number_of_tasks + 1)) + "\n"
         )
         n_relations = sum(len(followers[i]) for i in range(1, number_of_tasks + 1))
-        f.write("{}\n".format(n_relations))
+        f.write(f"{n_relations}\n")
 
         for i in range(1, number_of_tasks + 1):
             for j in followers[i]:
-                f.write("{} {}\n".format(i, j))
+                f.write(f"{i} {j}\n")
 
 
 if __name__ == "__main__":
@@ -60,4 +60,4 @@ if __name__ == "__main__":
         )
 
     end = time.perf_counter()
-    print("Execution time: {}s".format(end - start))
+    print(f"Execution time: {end - start}s")

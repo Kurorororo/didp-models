@@ -29,14 +29,12 @@ def get_limit_resource(time_limit, memory_limit):
 def generate_problem(n, node_weights, edge_weiths):
     lines = [
         "object_numbers:",
-        "   node: {}".format(n),
+        f"   node: {n}",
         "target:",
         "   clean: []",
         "table_values:",
         "   all-nodes: [ " + ", ".join(str(i) for i in range(n)) + " ]",
-        "   a: { "
-        + ", ".join("{}: {}".format(i, node_weights[i]) for i in range(n))
-        + " }",
+        "   a: { " + ", ".join(f"{i}: {node_weights[i]}" for i in range(n)) + " }",
         "   b: {",
     ]
 
@@ -44,9 +42,9 @@ def generate_problem(n, node_weights, edge_weiths):
         line = "        "
         for j in range(n):
             if (i, j) in edge_weiths:
-                line += "[{}, {}]: {}, ".format(i, j, edge_weiths[i, j])
+                line += f"[{i}, {j}]: {edge_weiths[i, j]}, "
             elif (j, i) in edge_weiths:
-                line += "[{}, {}]: {}, ".format(i, j, edge_weiths[j, i])
+                line += f"[{i}, {j}]: {edge_weiths[j, i]}, "
         lines.append(line)
     lines.append("     }")
 
@@ -73,7 +71,7 @@ if __name__ == "__main__":
 
     if args.didp_path is not None:
         fn = get_limit_resource(args.time_limit, args.memory_limit)
-        print("Preprocessing time: {}s".format(time.perf_counter() - start))
+        print(f"Preprocessing time: {time.perf_counter() - start}s")
         subprocess.run(
             [args.didp_path, domain_path, "problem.yaml", args.config_path],
             preexec_fn=fn,
@@ -88,7 +86,7 @@ if __name__ == "__main__":
             solution.append(transition["parameters"]["c"])
 
         print(solution)
-        print("cost: {}".format(cost))
+        print(f"cost: {cost}")
 
         validation_result = read_graph_clear.validate(n, a, b, solution, cost)
 
@@ -98,4 +96,4 @@ if __name__ == "__main__":
             print("The solution is invalid.")
 
     end = time.perf_counter()
-    print("Execution time: {}s".format(end - start))
+    print(f"Execution time: {end - start}s")

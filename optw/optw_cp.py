@@ -72,18 +72,16 @@ def solve(
 
                 if is_new_solution:
                     f.write(
-                        "{}, {}\n".format(
-                            time.perf_counter() - start, result.get_objective_value()
-                        )
+                        f"{time.perf_counter() - start}, {result.get_objective_value()}\n"
                     )
 
-    print("Search time: {}s".format(result.get_solve_time()))
+    print(f"Search time: {result.get_solve_time()}s")
 
     if result.is_solution():
         solution = [int(v.get_name()) for v in result[q]]
         cost = result.get_objective_value()
         print(solution)
-        print("cost: {}".format(cost))
+        print(f"cost: {cost}")
 
         validation_result = read_optw.validate_optw(
             service_time, profit, opening, closing, distance, solution, cost
@@ -92,10 +90,10 @@ def solve(
         if validation_result:
             print("The solution is valid.")
             if result.is_solution_optimal():
-                print("optimal cost: {}".format(cost))
+                print(f"optimal cost: {cost}")
             else:
-                print("gap: {}".format(result.get_objective_gap()))
-                print("best bound: {}".format(result.get_objective_bound()))
+                print(f"gap: {result.get_objective_gap()}")
+                print(f"best bound: {result.get_objective_bound()}")
         else:
             print("The solution is invalid")
     elif result.get_solve_status() == "Infeasible":

@@ -4,9 +4,7 @@ import argparse
 import time
 
 import docplex.cp.model as cp
-
 import read_graph_clear
-
 
 start = time.perf_counter()
 
@@ -113,9 +111,7 @@ def solve_n(n, node_weights, edge_weights, time_limit=None, threads=1, history=N
 
                 if is_new_solution:
                     f.write(
-                        "{}, {}\n".format(
-                            time.perf_counter() - start, result.get_objective_value()
-                        )
+                        f"{time.perf_counter() - start}, {result.get_objective_value()}\n"
                     )
 
     if result.is_solution():
@@ -127,7 +123,7 @@ def solve_n(n, node_weights, edge_weights, time_limit=None, threads=1, history=N
 
         cost = round(result.get_objective_value())
         print(solution)
-        print("cost: {}".format(cost))
+        print(f"cost: {cost}")
 
         validation_result = read_graph_clear.validate(
             n, node_weights, edge_weights, solution, cost
@@ -136,10 +132,10 @@ def solve_n(n, node_weights, edge_weights, time_limit=None, threads=1, history=N
         if validation_result:
             print("The solution is valid.")
             if result.is_solution_optimal():
-                print("optimal cost: {}".format(cost))
+                print(f"optimal cost: {cost}")
             else:
-                print("gap: {}".format(result.get_objective_gap()))
-                print("best bound: {}".format(result.get_objective_bound()))
+                print(f"gap: {result.get_objective_gap()}")
+                print(f"best bound: {result.get_objective_bound()}")
         else:
             print("The solution is invalid.")
 
@@ -202,9 +198,7 @@ def solve_s(n, node_weights, edge_weights, time_limit=None, threads=1, history=N
 
                 if is_new_solution:
                     f.write(
-                        "{}, {}\n".format(
-                            time.perf_counter() - start, result.get_objective_value()
-                        )
+                        f"{time.perf_counter() - start}, {result.get_objective_value()}\n"
                     )
 
     if result.is_solution():
@@ -214,7 +208,7 @@ def solve_s(n, node_weights, edge_weights, time_limit=None, threads=1, history=N
 
         cost = round(result.get_objective_value())
         print(solution)
-        print("cost: {}".format(cost))
+        print(f"cost: {cost}")
 
         validation_result = read_graph_clear.validate(
             n, node_weights, edge_weights, solution, cost
@@ -223,10 +217,10 @@ def solve_s(n, node_weights, edge_weights, time_limit=None, threads=1, history=N
         if validation_result:
             print("The solution is valid.")
             if result.is_solution_optimal():
-                print("optimal cost: {}".format(cost))
+                print(f"optimal cost: {cost}")
             else:
-                print("gap: {}".format(result.get_objective_gap()))
-                print("best bound: {}".format(result.get_objective_bound()))
+                print(f"gap: {result.get_objective_gap()}")
+                print(f"best bound: {result.get_objective_bound()}")
         else:
             print("The solution is invalid.")
     elif result.get_solve_status() == "infeasible":

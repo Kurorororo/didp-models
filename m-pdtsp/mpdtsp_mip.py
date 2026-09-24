@@ -1,19 +1,17 @@
 #!/usr/bin/env python3
 
 import argparse
-from collections import deque
 import time
+from collections import deque
 
 import gurobipy as gp
-
 import read_tsplib
 from mpdtsp_util import (
-    compute_precedence,
-    compute_predecessors_and_successors,
     check_edge,
     compute_not_inferred_precedence,
+    compute_precedence,
+    compute_predecessors_and_successors,
 )
-
 
 start = time.perf_counter()
 
@@ -22,10 +20,7 @@ def get_callback(file):
     def dump_solution(model, where):
         if where == gp.GRB.Callback.MIPSOL:
             file.write(
-                "{}, {}\n".format(
-                    time.perf_counter() - start,
-                    model.cbGet(gp.GRB.Callback.MIPSOL_OBJ),
-                )
+                f"{time.perf_counter() - start}, {model.cbGet(gp.GRB.Callback.MIPSOL_OBJ)}\n"
             )
 
     return dump_solution
@@ -264,7 +259,7 @@ def solve(
                 break
         print(tour)
         cost = round(model.objVal)
-        print("cost: {}".format(cost))
+        print(f"cost: {cost}")
 
         validation_result = read_tsplib.validate_mpdtsp(
             tour, cost, nodes, edges, capacity, items, demand
@@ -273,10 +268,10 @@ def solve(
         if validation_result:
             print("The solution is valid.")
             if status == gp.GRB.OPTIMAL:
-                print("optimal cost: {}".format(cost))
+                print(f"optimal cost: {cost}")
             else:
-                print("gap: {}".format(model.getAttr("MIPGap")))
-                print("best bound: {}".format(model.getAttr("ObjBound")))
+                print(f"gap: {model.getAttr('MIPGap')}")
+                print(f"best bound: {model.getAttr('ObjBound')}")
         else:
             print("The solution is invalid.")
 

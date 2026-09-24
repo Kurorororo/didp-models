@@ -55,11 +55,7 @@ def validate(solution, cost, actor_to_scenes, actor_to_cost, scene_to_duration):
         solution, actor_to_scenes, actor_to_cost, scene_to_duration
     )
     if cost != actual_cost:
-        print(
-            "The cost {} of solution mismatches the actual cost {}".format(
-                cost, actual_cost
-            )
-        )
+        print(f"The cost {cost} of solution mismatches the actual cost {actual_cost}")
         return False
 
     return True
@@ -84,48 +80,38 @@ def add_base_costs(solution, cost, scene_to_base_cost):
 
 def simplify(actor_to_scenes, actor_to_cost, scene_to_duration):
     single_actor_cost = 0
-    old_actor_to_scenes = actor_to_scenes
-    old_actor_to_cost = actor_to_cost
-    old_scene_to_duration = scene_to_duration
-    scene_to_new_scene = list(range(len(scene_to_duration)))
+    scene_to_original = [[i] for i in range(len(scene_to_duration))]
     while True:
-        (
-            new_actor_to_scenes,
-            new_actor_to_cost,
-            new_single_actor_cost,
-        ) = eliminate_single_scene_actors(
-            old_actor_to_scenes, old_actor_to_cost, scene_to_duration
+        new_actors, new_costs, constant = eliminate_single_scene_actors(
+            actor_to_scenes, actor_to_cost, scene_to_duration
         )
-        (
-            new_actor_to_scenes,
-            new_scene_to_duration,
-            new_scene_to_new_scene,
-        ) = concatenate_duplicate_scenes(new_actor_to_scenes, old_scene_to_duration)
-
+        new_actors, new_durations, mapping = concatenate_duplicate_scenes(
+            new_actors, scene_to_duration
+        )
         if (
-            new_actor_to_scenes == old_actor_to_scenes
-            and new_actor_to_cost == old_actor_to_cost
-            and new_scene_to_duration == old_scene_to_duration
+            new_actors == actor_to_scenes
+            and new_costs == actor_to_cost
+            and new_durations == scene_to_duration
         ):
-            scene_to_original = [[] for _ in range(len(new_scene_to_duration))]
-            for i, j in enumerate(scene_to_new_scene):
-                scene_to_original[j].append(i)
-
             return (
-                new_actor_to_scenes,
-                new_actor_to_cost,
-                new_scene_to_duration,
+                new_actors,
+                new_costs,
+                new_durations,
                 single_actor_cost,
                 scene_to_original,
             )
-
-        for i in scene_to_new_scene:
-            scene_to_new_scene[i] = new_scene_to_new_scene[scene_to_new_scene[i]]
-
-        old_actor_to_scenes = new_actor_to_scenes
-        old_actor_to_cost = new_actor_to_cost
-        old_scene_to_duration = new_scene_to_duration
-        single_actor_cost += new_single_actor_cost
+        # Preserve earlier merged blocks when merging again: sorting original
+        # scene IDs can separate the appearances of an already eliminated actor.
+        merged = [[] for _ in new_durations]
+        for old, new in enumerate(mapping):
+            merged[new].extend(scene_to_original[old])
+        scene_to_original = merged
+        actor_to_scenes, actor_to_cost, scene_to_duration = (
+            new_actors,
+            new_costs,
+            new_durations,
+        )
+        single_actor_cost += constant
 
 
 def eliminate_single_scene_actors(actor_to_scenes, actor_to_cost, scene_to_duration):

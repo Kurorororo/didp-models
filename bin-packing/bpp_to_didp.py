@@ -29,38 +29,34 @@ def get_limit_resource(time_limit, memory_limit):
 def generate_problem(n, c, weights, blind=False):
     lines = [
         "object_numbers:",
-        "      item: {}".format(n),
+        f"      item: {n}",
         "target:",
         "      unpacked: [ " + ", ".join([str(j) for j in range(n)]) + " ]",
         "      residual: 0",
         "      bin-number: 0",
         "table_values:",
-        "      capacity: {}".format(c),
-        "      weight: { "
-        + ", ".join(["{}: {}".format(j, weights[j]) for j in range(n)])
-        + " }",
+        f"      capacity: {c}",
+        "      weight: { " + ", ".join([f"{j}: {weights[j]}" for j in range(n)]) + " }",
     ]
 
     if not blind:
         lines += [
             "      lb2-weight1: { "
-            + ", ".join(["{}: {}".format(j, 1) for j in range(n) if weights[j] > c / 2])
+            + ", ".join([f"{j}: {1}" for j in range(n) if weights[j] > c / 2])
             + " }",
             "      lb2-weight2: { "
-            + ", ".join(
-                ["{}: {}".format(j, 0.5) for j in range(n) if weights[j] == c / 2]
-            )
+            + ", ".join([f"{j}: {0.5}" for j in range(n) if weights[j] == c / 2])
             + " }",
             "      lb3-weight: { "
             + ", ".join(
                 [
-                    "{}: {}".format(j, 1.0)
+                    f"{j}: {1.0}"
                     if weights[j] > c * 2 / 3
-                    else "{}: {}".format(j, 2 / 3 // 0.001 / 1000)
+                    else f"{j}: {2 / 3 // 0.001 / 1000}"
                     if weights[j] == c * 2 / 3
-                    else "{}: {}".format(j, 0.5)
+                    else f"{j}: {0.5}"
                     if weights[j] > c / 3
-                    else "{}: {}".format(j, 1 / 3 // 0.001 / 1000)
+                    else f"{j}: {1 / 3 // 0.001 / 1000}"
                     for j in range(n)
                     if weights[j] >= c / 3
                 ]
@@ -94,7 +90,7 @@ if __name__ == "__main__":
 
     if args.didp_path is not None:
         fn = get_limit_resource(args.time_limit, args.memory_limit)
-        print("Preprocessing time: {}s".format(time.perf_counter() - start))
+        print(f"Preprocessing time: {time.perf_counter() - start}s")
         subprocess.run(
             [args.didp_path, domain_path, "problem.yaml", args.config_path],
             preexec_fn=fn,
@@ -111,7 +107,7 @@ if __name__ == "__main__":
             solution[-1].append(transition["parameters"]["i"])
 
         print(solution)
-        print("cost: {}".format(cost))
+        print(f"cost: {cost}")
 
         validation_result = read_bpp.validate(n, c, weights, solution, cost)
         if validation_result:
@@ -120,4 +116,4 @@ if __name__ == "__main__":
             print("The solution is invalid.")
 
     end = time.perf_counter()
-    print("Execution time: {}s".format(end - start))
+    print(f"Execution time: {end - start}s")

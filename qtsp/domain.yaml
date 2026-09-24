@@ -1,0 +1,43 @@
+domain: QTSP
+objects: [node]
+reduce: min
+cost_type: integer
+state_variables:
+  - {name: unvisited, type: set, object: node}
+  - {name: previous, type: element, object: node}
+  - {name: current, type: element, object: node}
+  - {name: first, type: element, object: node}
+tables:
+  - {name: c, type: integer, args: [node, node, node]}
+  - {name: cin, type: integer, args: [node]}
+  - {name: cmid, type: integer, args: [node]}
+  - {name: cout, type: integer, args: [node]}
+base_cases:
+  - conditions:
+      - (is_empty unvisited)
+    cost: (+ (c previous current 0) (c current 0 first))
+transitions:
+  - name: first-visit
+    parameters:
+      - {name: to, object: unvisited}
+    preconditions:
+      - (= current 0)
+    effect:
+      unvisited: (remove to unvisited)
+      current: to
+      first: to
+    cost: cost
+  - name: visit
+    parameters:
+      - {name: to, object: unvisited}
+    preconditions:
+      - (!= current 0)
+    effect:
+      unvisited: (remove to unvisited)
+      previous: current
+      current: to
+    cost: (+ cost (c previous current to))
+dual_bounds:
+  - (sum cin (add 0 (add first unvisited)))
+  - (sum cmid (add 0 (add current unvisited)))
+  - (sum cout (add previous (add current unvisited)))

@@ -30,27 +30,21 @@ def generate_problem(processing_times, due_dates, weights, before):
     n = len(processing_times)
     lines = [
         "object_numbers:",
-        "    job: {}".format(n),
+        f"    job: {n}",
         "target:",
         "    scheduled: []",
         "table_values:",
         "    all_jobs: [ " + ", ".join(str(i) for i in range(n)) + " ]",
         "    processing_time: {"
-        + ", ".join("{}: {}".format(i, processing_times[i]) for i in range(n))
+        + ", ".join(f"{i}: {processing_times[i]}" for i in range(n))
         + " }",
-        "    due_date: {"
-        + ", ".join("{}: {}".format(i, due_dates[i]) for i in range(n))
-        + " }",
-        "    weight: {"
-        + ", ".join("{}: {}".format(i, weights[i]) for i in range(n))
-        + " }",
+        "    due_date: {" + ", ".join(f"{i}: {due_dates[i]}" for i in range(n)) + " }",
+        "    weight: {" + ", ".join(f"{i}: {weights[i]}" for i in range(n)) + " }",
         "    predecessors: {",
     ]
     for i in range(n):
         lines.append(
-            "                 {}: [ ".format(i)
-            + ", ".join(str(j) for j in before[i])
-            + " ],"
+            f"                 {i}: [ " + ", ".join(str(j) for j in before[i]) + " ],"
         )
     lines.append("    }")
 
@@ -99,7 +93,7 @@ if __name__ == "__main__":
 
     if args.didp_path is not None:
         fn = get_limit_resource(args.time_limit, args.memory_limit)
-        print("Preprocessing time: {}s".format(time.perf_counter() - start))
+        print(f"Preprocessing time: {time.perf_counter() - start}s")
         subprocess.run(
             [args.didp_path, domain_path, "problem.yaml", args.config_path],
             preexec_fn=fn,
@@ -114,7 +108,7 @@ if __name__ == "__main__":
             solution.append(transition["parameters"]["j"])
 
         print(solution)
-        print("cost: {}".format(cost))
+        print(f"cost: {cost}")
 
         validation_result = read_single_machine_scheduling.verify_wt(
             solution,
@@ -131,4 +125,4 @@ if __name__ == "__main__":
             print("The solution is invalid.")
 
     end = time.perf_counter()
-    print("Execution time: {}s".format(end - start))
+    print(f"Execution time: {end - start}s")

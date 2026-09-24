@@ -4,9 +4,7 @@ import argparse
 import time
 
 import docplex.cp.model as cp
-
 import read_talent_scheduling
-
 
 start = time.perf_counter()
 
@@ -99,10 +97,7 @@ def solve_minizinc_model(
 
                 if is_new_solution:
                     f.write(
-                        "{}, {}\n".format(
-                            time.perf_counter() - start,
-                            result.get_objective_value(),
-                        )
+                        f"{time.perf_counter() - start}, {result.get_objective_value()}\n"
                     )
 
     is_optimal = result.is_solution_optimal()
@@ -161,7 +156,7 @@ if __name__ == "__main__":
         )
 
         print(solution)
-        print("cost: {}".format(cost))
+        print(f"cost: {cost}")
 
         validation_result = read_talent_scheduling.validate(
             solution,
@@ -174,10 +169,10 @@ if __name__ == "__main__":
         if validation_result:
             print("The solution is valid.")
             if is_optimal:
-                print("optimal cost: {}".format(cost))
+                print(f"optimal cost: {cost}")
             else:
-                print("gap: {}".format(gap))
-                print("best bound: {}".format(best_bound))
+                print(f"gap: {gap}")
+                print(f"best bound: {best_bound}")
         else:
             print("The solution is invalid.")
     elif is_infeasible:

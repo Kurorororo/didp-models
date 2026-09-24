@@ -66,36 +66,30 @@ def compute_min_distance_from(nodes, edges):
     return result
 
 
-def create_didp(n, nodes, edges, a, b, use_bound=False):
+def create_didp(n, nodes, edges, a, b, use_bound=True):
     shortest_distance = compute_shortest_distance(nodes, edges)
     output_lines = [
         "object_numbers:",
-        "      customer: {}".format(n),
+        f"      customer: {n}",
         "target:",
         "      unvisited: [ " + ", ".join([str(i) for i in range(1, n)]) + " ]",
         "      location: 0",
-        "      time: 0",
+        f"      time: {max(0, a[0])}",
         "table_values:",
-        "      ready_time: { "
-        + ", ".join(["{}: {}".format(i, a[i]) for i in nodes])
-        + " }",
-        "      due_date: { "
-        + ", ".join(["{}: {}".format(i, b[i]) for i in nodes])
-        + " }",
+        "      ready_time: { " + ", ".join([f"{i}: {a[i]}" for i in nodes]) + " }",
+        "      due_date: { " + ", ".join([f"{i}: {b[i]}" for i in nodes]) + " }",
         "      distance:",
         "            {",
     ]
     for i, j in edges:
-        output_lines.append("                  [{}, {}]: {},".format(i, j, edges[i, j]))
+        output_lines.append(f"                  [{i}, {j}]: {edges[i, j]},")
     output_lines.append("      }")
     output_lines += [
         "      shortest_distance:",
         "            {",
     ]
     for i, j in edges:
-        output_lines.append(
-            "                  [{}, {}]: {},".format(i, j, shortest_distance[i, j])
-        )
+        output_lines.append(f"                  [{i}, {j}]: {shortest_distance[i, j]},")
     output_lines.append("      }")
 
     if use_bound:
@@ -103,10 +97,10 @@ def create_didp(n, nodes, edges, a, b, use_bound=False):
         min_distance_from = compute_min_distance_from(nodes, edges)
         output_lines += [
             "      min_distance_to: { "
-            + ", ".join("{}: {}".format(i, min_distance_to[i]) for i in nodes)
+            + ", ".join(f"{i}: {min_distance_to[i]}" for i in nodes)
             + " }",
             "      min_distance_from: { "
-            + ", ".join("{}: {}".format(i, min_distance_from[i]) for i in nodes)
+            + ", ".join(f"{i}: {min_distance_from[i]}" for i in nodes)
             + " }",
         ]
 
@@ -120,37 +114,26 @@ if __name__ == "__main__":
     parser.add_argument("--config-path", "-c", type=str)
     parser.add_argument("--time-limit", default=None, type=int)
     parser.add_argument("--memory-limit", default=None, type=int)
-    parser.add_argument("--use-bound", action="store_true")
-    parser.add_argument("--non-zero-base-case", action="store_true")
+    parser.add_argument("--mst", action="store_true")
     parser.add_argument("--makespan", action="store_true")
     args = parser.parse_args()
 
     n, nodes, edges, a, b = read_tsptw.read(args.input)
-    dypdl_text = create_didp(
-        n, nodes, edges, a, b, use_bound=args.use_bound or args.makespan
-    )
+    dypdl_text = create_didp(n, nodes, edges, a, b)
 
     with open("problem.yaml", "w") as f:
         f.write(dypdl_text)
 
     domain_file = (
-        "domain_makespan.yaml"
+        ("domain_makespan_mst.yaml" if args.mst else "domain_makespan.yaml")
         if args.makespan
-        else (
-            "domain_non_zero_base_bound.yaml"
-            if args.non_zero_base_case and args.use_bound
-            else (
-                "domain_non_zero_base.yaml"
-                if args.non_zero_base_case
-                else "domain_bound.yaml" if args.use_bound else "domain.yaml"
-            )
-        )
+        else ("domain_mst.yaml" if args.mst else "domain.yaml")
     )
     domain_path = os.path.join(os.path.dirname(__file__), domain_file)
 
     if args.didp_path is not None:
         fn = get_limit_resource(args.time_limit, args.memory_limit)
-        print("Preprocessing time: {}s".format(time.perf_counter() - start))
+        print(f"Preprocessing time: {time.perf_counter() - start}s")
         subprocess.run(
             [args.didp_path, domain_path, "problem.yaml", args.config_path],
             preexec_fn=fn,
@@ -164,14 +147,11 @@ if __name__ == "__main__":
         for transition in result["transitions"]:
             if transition["name"] == "visit":
                 solution.append(transition["parameters"]["to"])
-            if transition["name"] == "return":
-                solution.append(0)
 
-        if args.non_zero_base_case or args.makespan:
-            solution.append(0)
+        solution.append(0)
 
         print(solution)
-        print("cost: {}".format(cost))
+        print(f"cost: {cost}")
 
         validation_result = read_tsptw.validate(
             n, edges, a, b, solution, cost, makespan=args.makespan
@@ -183,4 +163,4 @@ if __name__ == "__main__":
             print("The solution is invalid.")
 
     end = time.perf_counter()
-    print("Execution time: {}s".format(end - start))
+    print(f"Execution time: {end - start}s")

@@ -48,31 +48,32 @@ def generate_problem(
     subsumption_candidates = get_subsumption_candidates(players)
     lines = [
         "object_numbers:",
-        "    scene: {}".format(n),
-        "    actor: {}".format(m),
+        f"    scene: {n}",
+        f"    actor: {max(m, 1)}",
         "target:",
         "    remaining: [ " + ", ".join(str(i) for i in range(n)) + " ]",
         "table_values:",
         "    duration: { "
-        + ", ".join("{}: {}".format(i, scene_to_duration[i]) for i in range(n))
+        + ", ".join(f"{i}: {scene_to_duration[i]}" for i in range(n))
         + " }",
         "    actor_cost: { "
-        + ", ".join("{}: {}".format(i, actor_to_cost[i]) for i in range(m))
+        + ", ".join(f"{i}: {actor_to_cost[i]}" for i in range(m))
+        + ("0: 0" if not m else "")
         + " }",
         "    base_cost: { "
-        + ", ".join("{}: {}".format(i, base_cost[i]) for i in range(n))
+        + ", ".join(f"{i}: {base_cost[i]}" for i in range(n))
         + " }",
         "    players: {",
     ]
     for i in range(n):
         lines += [
-            "        {}: [ ".format(i) + ", ".join(str(j) for j in players[i]) + " ],",
+            f"        {i}: [ " + ", ".join(str(j) for j in players[i]) + " ],",
         ]
     lines += ["      }"]
     lines += ["    subsumption_candidates: {"]
     for i in range(n):
         lines += [
-            "        {}: [ ".format(i)
+            f"        {i}: [ "
             + ", ".join(str(j) for j in subsumption_candidates[i])
             + " ],",
         ]
@@ -128,7 +129,7 @@ if __name__ == "__main__":
 
     if args.didp_path is not None:
         fn = get_limit_resource(args.time_limit, args.memory_limit)
-        print("Preprocessing time: {}s".format(time.perf_counter() - start))
+        print(f"Preprocessing time: {time.perf_counter() - start}s")
         subprocess.run(
             [args.didp_path, domain_path, "problem.yaml", args.config_path],
             preexec_fn=fn,
@@ -147,7 +148,7 @@ if __name__ == "__main__":
         )
 
         print(solution)
-        print("cost: {}".format(cost))
+        print(f"cost: {cost}")
 
         validation_result = read_talent_scheduling.validate(
             solution,
@@ -163,4 +164,4 @@ if __name__ == "__main__":
             print("The solution is invalid.")
 
     end = time.perf_counter()
-    print("Execution time: {}s".format(end - start))
+    print(f"Execution time: {end - start}s")

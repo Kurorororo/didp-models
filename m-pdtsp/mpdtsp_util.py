@@ -78,12 +78,12 @@ def compute_not_inferred_precedence(
                     r,
                     q,
                 ) in not_inferred_precedence_edges:
-                    not_inferred_precedence_edges[
-                        p, r
-                    ] += not_inferred_precedence_edges[p, q]
-                    not_inferred_precedence_edges[
-                        r, q
-                    ] += not_inferred_precedence_edges[p, q]
+                    not_inferred_precedence_edges[p, r] += (
+                        not_inferred_precedence_edges[p, q]
+                    )
+                    not_inferred_precedence_edges[r, q] += (
+                        not_inferred_precedence_edges[p, q]
+                    )
                     del not_inferred_precedence_edges[p, q]
                     break
 

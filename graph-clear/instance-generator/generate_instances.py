@@ -1,6 +1,6 @@
-import os
 import argparse
 import math
+import os
 import random
 
 import networkx as nx
@@ -25,14 +25,14 @@ def generate_weights(G, node_min, node_max, edge_min, edge_max):
 
 def write_to_file(G, filename):
     with open(filename, "w") as f:
-        f.write("{} {}\n".format(len(G), len(G.edges)))
+        f.write(f"{len(G)} {len(G.edges)}\n")
         f.write(" ".join(str(G.nodes[u]["weight"]) for u in G) + "\n")
 
         for u in G:
             line = ""
             for v in G:
                 if G.has_edge(u, v):
-                    line += "{} ".format(G.edges[u, v]["weight"])
+                    line += f"{G.edges[u, v]['weight']} "
                 else:
                     line += "0 "
             f.write(line + "\n")
@@ -57,7 +57,7 @@ if __name__ == "__main__":
     os.makedirs(args.output_dir, exist_ok=True)
 
     for n in args.ns:
-        dirname = "random_n{}".format(n)
+        dirname = f"random_n{n}"
         dirpath = os.path.join(args.output_dir, dirname)
         os.makedirs(dirpath, exist_ok=True)
         for p in args.ps:
@@ -66,6 +66,6 @@ if __name__ == "__main__":
                 generate_weights(
                     G, args.node_min, args.node_max, args.edge_min, args.edge_max
                 )
-                filename = "p{}_seed{}_{}".format(p, args.seed, i)
+                filename = f"p{p}_seed{args.seed}_{i}"
                 filepath = os.path.join(dirpath, filename)
                 write_to_file(G, filepath)

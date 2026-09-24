@@ -91,7 +91,7 @@ if __name__ == "__main__":
 
     if args.picat_path is not None:
         fn = get_limit_resource(args.time_limit, args.memory_limit)
-        print("Preprocessing time: {}s".format(time.perf_counter() - start))
+        print(f"Preprocessing time: {time.perf_counter() - start}s")
         dirname = os.path.dirname(__file__)
         subprocess.run(
             [
@@ -103,4 +103,4 @@ if __name__ == "__main__":
         )
 
     end = time.perf_counter()
-    print("Execution time: {}s".format(end - start))
+    print(f"Execution time: {end - start}s")

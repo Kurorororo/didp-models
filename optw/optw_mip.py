@@ -13,10 +13,7 @@ def get_callback(file):
     def dump_solution(model, where):
         if where == gp.GRB.Callback.MIPSOL:
             file.write(
-                "{}, {}\n".format(
-                    time.perf_counter() - start,
-                    model.cbGet(gp.GRB.Callback.MIPSOL_OBJ),
-                )
+                f"{time.perf_counter() - start}, {model.cbGet(gp.GRB.Callback.MIPSOL_OBJ)}\n"
             )
 
     return dump_solution
@@ -126,21 +123,21 @@ def solve(
                 break
         print(tour)
         cost = model.objVal
-        print("cost: {}".format(cost))
+        print(f"cost: {cost}")
 
         validation_result = read_optw.validate_optw(
             service_time, profit, opening, closing, distance, tour, cost
         )
 
-        print("Search time: {}s".format(model.getAttr("Runtime")))
+        print(f"Search time: {model.getAttr('Runtime')}s")
 
         if validation_result:
             print("The solution is valid.")
             if status == gp.GRB.OPTIMAL:
-                print("optimal cost: {}".format(model.objVal))
+                print(f"optimal cost: {model.objVal}")
             else:
-                print("gap: {}".format(model.getAttr("MIPGap")))
-                print("best bound: {}".format(model.getAttr("ObjBound")))
+                print(f"gap: {model.getAttr('MIPGap')}")
+                print(f"best bound: {model.getAttr('ObjBound')}")
         else:
             print("The solution is invalid.")
 

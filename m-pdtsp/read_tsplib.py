@@ -412,11 +412,7 @@ def read_cvrp(filename):
 
 def validate_cvrp(n, nodes, edges, capacity, demand, depot, solution, cost, k=None):
     if solution[0] != depot:
-        print(
-            "The tour does not start from the depot {} but from {}".format(
-                depot, solution[0]
-            )
-        )
+        print(f"The tour does not start from the depot {depot} but from {solution[0]}")
         return False
     previous = solution[0]
     actual_cost = 0
@@ -427,19 +423,15 @@ def validate_cvrp(n, nodes, edges, capacity, demand, depot, solution, cost, k=No
         if previous == depot:
             n_vehicles += 1
             if k is not None and n_vehicles > k:
-                print(
-                    "The number of vehicles {} exceeds the limit {}".format(
-                        n_vehicles, k
-                    )
-                )
+                print(f"The number of vehicles {n_vehicles} exceeds the limit {k}")
                 return False
 
         if i not in nodes:
-            print("No such customer {}".format(i))
+            print(f"No such customer {i}")
             return False
 
         if (previous, i) not in edges:
-            print("No such edge ({}, {})".format(previous, i))
+            print(f"No such edge ({previous}, {i})")
             return False
 
         actual_cost += edges[previous, i]
@@ -448,38 +440,26 @@ def validate_cvrp(n, nodes, edges, capacity, demand, depot, solution, cost, k=No
             load = 0
         else:
             if i in visited:
-                print("Customer {} is already visited".format(i))
+                print(f"Customer {i} is already visited")
                 return False
             visited.add(i)
             load += demand[i]
             if load > capacity:
-                print(
-                    "load {} at customer {} exceeds the capacity {}".format(
-                        load, i, capacity
-                    )
-                )
+                print(f"load {load} at customer {i} exceeds the capacity {capacity}")
                 return False
 
         previous = i
 
     if previous != depot:
-        print(
-            "The tour does not return to the depot {} but to {}".format(depot, previous)
-        )
+        print(f"The tour does not return to the depot {depot} but to {previous}")
         return False
 
     if len(visited) != n:
-        print(
-            "The number of visited customers is {}, but should be {}".format(
-                len(visited), n
-            )
-        )
+        print(f"The number of visited customers is {len(visited)}, but should be {n}")
 
     if actual_cost != cost:
         print(
-            "The cost of the solution {} mismatches the actual cost {}".format(
-                cost, actual_cost
-            )
+            f"The cost of the solution {cost} mismatches the actual cost {actual_cost}"
         )
         return False
 
@@ -547,25 +527,21 @@ def validate_mpdtsp(solution, cost, nodes, edges, capacity, items, demand):
     for i in solution:
         if previous is None:
             if i != nodes[0]:
-                print(
-                    "The tour does not start from depot {}, but from {}".format(
-                        nodes[0], i
-                    )
-                )
+                print(f"The tour does not start from depot {nodes[0]}, but from {i}")
                 return False
         else:
             if (previous, i) not in edges:
-                print("No such edge ({}, {})".format(previous, i))
+                print(f"No such edge ({previous}, {i})")
                 return False
 
             actual_cost += edges[previous, i]
 
         if i not in nodes:
-            print("No such node {}".format(i))
+            print(f"No such node {i}")
             return False
 
         if i not in unvisited:
-            print("Node {} is already visited".format(i))
+            print(f"Node {i} is already visited")
             return False
 
         unvisited.remove(i)
@@ -575,33 +551,29 @@ def validate_mpdtsp(solution, cost, nodes, edges, capacity, items, demand):
 
         for j in items:
             if load[j] < 0:
-                print("The weight {} for item {} is negative".format(load[j], j))
+                print(f"The weight {load[j]} for item {j} is negative")
                 return False
 
         load_sum = sum(load.values())
 
         if load_sum > capacity:
             print(
-                "The sum of weights {} at node {} exceeds the capacity {}".format(
-                    load_sum, i, capacity
-                )
+                f"The sum of weights {load_sum} at node {i} exceeds the capacity {capacity}"
             )
             return False
 
         previous = i
 
     if len(unvisited) > 0:
-        print("Nodes {} are unvisited".format(unvisited))
+        print(f"Nodes {unvisited} are unvisited")
         return False
 
     if i != nodes[-1]:
-        print("The tour does not end at depot {}, but at {}".format(nodes[-1], i))
+        print(f"The tour does not end at depot {nodes[-1]}, but at {i}")
 
     if actual_cost != cost:
         print(
-            "The cost of the solution {} mismatches the actual cost {}".format(
-                cost, actual_cost
-            )
+            f"The cost of the solution {cost} mismatches the actual cost {actual_cost}"
         )
         return False
 

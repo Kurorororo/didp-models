@@ -77,24 +77,26 @@ def generate_problem(n, nodes, edges, capacity, items, demand, blind=False):
         )
     }
     total_demand = {i: sum(demand[i, j] for j in items) for i in nodes}
-    min_distance_to = compute_min_distance_to(nodes, filtered_edges)
-    min_distance_from = compute_min_distance_from(nodes, filtered_edges)
-
+    infinity = n * max(filtered_edges.values(), default=0) + 1
+    min_goal = min(
+        (cost for (i, j), cost in filtered_edges.items() if j == nodes[-1]),
+        default=infinity,
+    )
     output_lines = [
         "object_numbers:",
-        "      customer: {}".format(n),
+        f"      customer: {n}",
         "target:",
         "      unvisited: [ " + ", ".join([str(i) for i in range(1, n - 1)]) + " ]",
         "      location: 0",
         "      load: 0",
         "table_values:",
-        "      capacity: {}".format(capacity),
-        "      goal: {}".format(n - 1),
+        f"      capacity: {capacity}",
+        f"      goal: {n - 1}",
         "      demand: { "
-        + ", ".join(["{}: {}".format(i - 1, total_demand[i]) for i in nodes])
+        + ", ".join([f"{i - 1}: {total_demand[i]}" for i in nodes])
         + " }",
         "      connected: { "
-        + ", ".join("[{}, {}]: true".format(i - 1, j - 1) for i, j in filtered_edges)
+        + ", ".join(f"[{i - 1}, {j - 1}]: true" for i, j in filtered_edges)
         + " }",
         "      predecessors:",
         "            {",
@@ -102,22 +104,19 @@ def generate_problem(n, nodes, edges, capacity, items, demand, blind=False):
 
     for i in nodes:
         output_lines.append(
-            "                 {}: [ ".format(i - 1)
+            f"                 {i - 1}: [ "
             + ", ".join(str(j - 1) for j in predecessors[i])
             + " ],"
         )
 
     output_lines.append("      }")
 
-    if not blind:
-        output_lines += [
-            "      min_distance_to: { "
-            + ", ".join("{}: {}".format(i - 1, min_distance_to[i]) for i in nodes)
-            + " }",
-            "      min_distance_from: { "
-            + ", ".join("{}: {}".format(i - 1, min_distance_from[i]) for i in nodes)
-            + " }",
-        ]
+    output_lines += [f"      min_goal: {min_goal}", "      mst_distance: {"]
+    for i, u in enumerate(nodes):
+        for j, v in enumerate(nodes):
+            value = 0 if i == j else filtered_edges.get((u, v), infinity)
+            output_lines.append(f"        [{i}, {j}]: {value},")
+    output_lines.append("      }")
 
     output_lines += [
         "      distance:",
@@ -125,46 +124,59 @@ def generate_problem(n, nodes, edges, capacity, items, demand, blind=False):
     ]
     for i, j in filtered_edges:
         output_lines.append(
-            "                  [{}, {}]: {},".format(i - 1, j - 1, filtered_edges[i, j])
+            f"                  [{i - 1}, {j - 1}]: {filtered_edges[i, j]},"
         )
     output_lines.append("      }")
 
-    return "\n".join(output_lines)
+    return "\n".join(output_lines), infinity
+
+
+def create_solver_config(config, infinity):
+    """Apply the instance's finite infinity cutoff, retaining a tighter bound."""
+    config = dict(config)
+    options = dict(config.get("config") or {})
+    bound = options.get("primal_bound")
+    options["primal_bound"] = infinity if bound is None else min(bound, infinity)
+    config["config"] = options
+    return yaml.safe_dump(config, sort_keys=False)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("input", type=str)
     parser.add_argument("--didp-path", "-d", type=str)
-    parser.add_argument("--config-path", "-c", type=str)
+    parser.add_argument(
+        "--config-path",
+        "-c",
+        type=str,
+        default=os.path.join(os.path.dirname(__file__), "../configs/cabs.yaml"),
+    )
     parser.add_argument("--time-limit", default=None, type=int)
     parser.add_argument("--memory-limit", default=None, type=int)
-    parser.add_argument("--non-zero-base-case", action="store_true")
     parser.add_argument("--blind", action="store_true")
     args = parser.parse_args()
 
     n, nodes, edges, capacity, m, items, demand, _ = read_tsplib.read_mpdtsp(args.input)
-    problem = generate_problem(n, nodes, edges, capacity, items, demand, args.blind)
+    problem, infinity = generate_problem(
+        n, nodes, edges, capacity, items, demand, args.blind
+    )
 
     with open("problem.yaml", "w") as f:
         f.write(problem)
 
-    domain_file = (
-        "domain_non_zero_base_blind.yaml"
-        if args.non_zero_base_case and args.blind
-        else "domain_non_zero_base.yaml"
-        if args.non_zero_base_case
-        else "domain_blind.yaml"
-        if args.blind
-        else "domain.yaml"
-    )
+    with open(args.config_path) as f:
+        config = yaml.safe_load(f)
+    with open("solver-config.yaml", "w") as f:
+        f.write(create_solver_config(config, infinity))
+
+    domain_file = "domain_blind.yaml" if args.blind else "domain.yaml"
     domain_path = os.path.join(os.path.dirname(__file__), domain_file)
 
     if args.didp_path is not None:
         fn = get_limit_resource(args.time_limit, args.memory_limit)
-        print("Preprocessing time: {}s".format(time.perf_counter() - start))
+        print(f"Preprocessing time: {time.perf_counter() - start}s")
         subprocess.run(
-            [args.didp_path, domain_path, "problem.yaml", args.config_path],
+            [args.didp_path, domain_path, "problem.yaml", "solver-config.yaml"],
             preexec_fn=fn,
         )
 
@@ -176,14 +188,11 @@ if __name__ == "__main__":
         for transition in result["transitions"]:
             if transition["name"] == "visit":
                 solution.append(transition["parameters"]["to"] + 1)
-            if transition["name"] == "finish":
-                solution.append(n)
 
-        if args.non_zero_base_case:
-            solution.append(n)
+        solution.append(n)
 
         print(solution)
-        print("cost: {}".format(cost))
+        print(f"cost: {cost}")
 
         validation_result = read_tsplib.validate_mpdtsp(
             solution, cost, nodes, edges, capacity, items, demand
@@ -194,4 +203,4 @@ if __name__ == "__main__":
             print("The solution is invalid.")
 
     end = time.perf_counter()
-    print("Execution time: {}s".format(end - start))
+    print(f"Execution time: {end - start}s")

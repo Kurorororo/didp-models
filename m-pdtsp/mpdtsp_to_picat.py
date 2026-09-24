@@ -58,7 +58,7 @@ def create_picat_input(n, nodes, edges, capacity, items, demand):
     lines = [str(n), str(capacity), str(len(filtered_edges))]
 
     for i, j in filtered_edges:
-        lines.append("{} {} {}".format(i, j, filtered_edges[i, j]))
+        lines.append(f"{i} {j} {filtered_edges[i, j]}")
 
     for i in nodes:
         lines.append(str(total_demand[i]))
@@ -67,7 +67,7 @@ def create_picat_input(n, nodes, edges, capacity, items, demand):
 
     for i in nodes:
         for j in predecessors[i]:
-            lines.append("{} {}".format(j, i))
+            lines.append(f"{j} {i}")
 
     return "\n".join(lines)
 
@@ -95,4 +95,4 @@ if __name__ == "__main__":
         )
 
     end = time.perf_counter()
-    print("Execution time: {}s".format(end - start))
+    print(f"Execution time: {end - start}s")

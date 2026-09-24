@@ -30,48 +30,36 @@ def read(filename):
 
 def validate(number_of_tasks, cycle_time, task_times, predecessors, solution, cost):
     if cost != len(solution):
-        print(
-            "The cost of solution {} mismatches the actual cost {}".format(
-                cost, len(solution)
-            )
-        )
+        print(f"The cost of solution {cost} mismatches the actual cost {len(solution)}")
     scheduled = {}
-    for (i, tasks) in enumerate(solution):
+    for i, tasks in enumerate(solution):
         time = 0
         for j in tasks:
             if j < 1 or j > number_of_tasks:
-                print("task {} in station {} does not exist".format(j, i))
+                print(f"task {j} in station {i} does not exist")
                 return False
             if j in scheduled:
                 print(
-                    "task {} in station {} is already scheduled in station {}".format(
-                        j, i, scheduled[j]
-                    )
+                    f"task {j} in station {i} is already scheduled in station {scheduled[j]}"
                 )
                 return False
             for k in predecessors[j]:
                 if k not in scheduled and k not in tasks:
                     print(
-                        "task {}, which is a predecessor of task {} in station {}, is not scheduled".format(
-                            k, j, i
-                        )
+                        f"task {k}, which is a predecessor of task {j} in station {i}, is not scheduled"
                     )
                     return False
             scheduled[j] = i
             time += task_times[j]
         if time > cycle_time:
             print(
-                "station {} has total time {}, which exceeds the cycle time".format(
-                    i + 1, time
-                )
+                f"station {i + 1} has total time {time}, which exceeds the cycle time"
             )
             return False
 
     if len(scheduled) != number_of_tasks:
         print(
-            "The number of scheduled tasks is {}, but should be {}".format(
-                len(scheduled), number_of_tasks
-            )
+            f"The number of scheduled tasks is {len(scheduled)}, but should be {number_of_tasks}"
         )
 
     return True
